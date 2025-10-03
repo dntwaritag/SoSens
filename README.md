@@ -1,2 +1,1 @@
-# SoSens-
-Soil Quality Monitoring &amp; Decision Support
+# SoSens - Soil Quality Monitoring &amp; Decision Support
