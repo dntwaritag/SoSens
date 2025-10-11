@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Crop Recommendation Demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 12px; max-width: 720px; margin: auto; }
+    label { display:block; margin-top:8px; }
+    input[type="number"]{ width:100%; padding:8px; margin-top:4px; box-sizing:border-box; }
+    button { padding:10px 16px; margin-top:12px; }
+    .card { border:1px solid #ddd; padding:12px; margin-top:12px; border-radius:8px; }
+  </style>
+</head>
+<body>
+  <h2>Crop Recommendation (Demo)</h2>
+  <p>Enter the soil & weather numeric inputs below and click <b>Predict</b>. Ensure your API is running at <code>http://localhost:8000</code>.</p>
+
+  <form id="inputForm">
+    <!-- Replace these fields with the first 8 numeric feature names from your trained model -->
+    <div id="fields"></div>
+    <button type="submit">Predict</button>
+  </form>
+
+  <div id="result" class="card" style="display:none"></div>
+
+<script>
+const API_BASE = "http://localhost:8000";
+async function getFeatureNames() {
+  // We don't have an endpoint to fetch feature names; hardcode them here to match training order.
+  // Replace this array with the exact order from models/feature_names.pkl (printed by train script).
+  return [
+    // Example order (replace with your actual feature names in the same order)
+    "Ph", "K", "P", "N", "Zn", "S", "QV2M-W", "QV2M-Sp", "QV2M-Su", "QV2M-Au",
+    "T2M_MIN-W", "T2M_MIN-Sp", "WD10M", "PRECTOTCORR-W"
+  ];
+}
+
+async function buildForm() {
+  const fields = await getFeatureNames();
+  const container = document.getElementById("fields");
+  container.innerHTML = "";
+  fields.forEach(f => {
+    const id = f.replace(/[^a-zA-Z0-9]/g, "_");
+    container.innerHTML += `
+      <label for="${id}">${f}</label>
+      <input step="any" type="number" id="${id}" name="${f}" required />
+    `;
+  });
+}
+async function onSubmit(e) {
+  e.preventDefault();
+  const fields = await getFeatureNames();
+  const payload = {};
+  let valid = true;
+  fields.forEach(f => {
+    const id = f.replace(/[^a-zA-Z0-9]/g, "_");
+    const el = document.getElementById(id);
+    const val = parseFloat(el.value);
+    if (isNaN(val)) valid = false;
+    payload[f] = val;
+  });
+  if (!valid) {
+    alert("Please fill numeric values for every field.");
+    return;
+  }
+
+  try {
+    const res = await fetch(API_BASE + "/predict", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    const rdiv = document.getElementById("result");
+    rdiv.style.display = 'block';
+    rdiv.innerHTML = `<h3>Prediction</h3>
+      <p><b>Predicted crop:</b> ${data.predicted_label} (index=${data.predicted_label_index})</p>
+      <p><b>Confidence:</b> ${data.confidence ? (data.confidence*100).toFixed(1) + '%' : 'N/A'}</p>
+      <details><summary>Top 3</summary>
+        <pre>${JSON.stringify(data.top3, null, 2)}</pre>
+      </details>`;
+  } catch (err) {
+    alert("Error calling API: " + err);
+  }
+}
+
+document.getElementById("inputForm").addEventListener("submit", onSubmit);
+buildForm();
+</script>
+</body>
+</html>
