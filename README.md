@@ -99,6 +99,5 @@ SoSens/
 ```
 
 ## Author
-**Denys Ntwaritaganzwa**  
-African Leadership University | Capstone Project  
+**Denys Ntwaritaganzwa**    
 Email: [d.ntwaritag@alustudent.com]  
