@@ -53,7 +53,7 @@ Access API documentation at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/d
 Open the file `frontend/index.html` in your browser. The interface will communicate with the running backend automatically.
 
 ## Designs and Screens
-- Figma Prototype: View Figma Design
+- Figma Prototype: View [Figma Design](https://www.figma.com/design/qpwXCQuj7gci2et4hMmMW4/Sosens?node-id=1-75&t=iGdlfYG2LmUXkjlU-1)
 
 ## Deployment Plan
 | Stage | Description |
