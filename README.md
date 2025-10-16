@@ -65,7 +65,7 @@ Open the file `frontend/index.html` in your browser. The interface will communic
 
 ## Video Demonstration
 
-Demo Video [Link](https://www.figma.com/design/RPA8CQDQhmZm6mkEIMBJ3n/Farming?node-id=0-1&t=Ji1KlmsOBSqDAzLJ-1)
+Demo [Video Link](https://youtu.be/BpB7NFI0thQ)
 
 
 ## Features
