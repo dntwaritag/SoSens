@@ -1,7 +1,5 @@
 
-  # Crop Recommendation Form
-
-  This is a code bundle for Crop Recommendation Form. The original project is available at https://www.figma.com/design/XOGY0vUpmMiWEGhhIpNG6L/Crop-Recommendation-Form.
+  # SoSens
 
   ## Running the code
 
