@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 '''
-Simple script to run the application
+Run script for FastAPI application
 '''
 
-from app import create_app
+import uvicorn
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 if __name__ == '__main__':
-    config_name = os.getenv('FLASK_ENV', 'development')
-    app = create_app(config_name)
+    port = int(os.getenv('API_PORT', 5000))
+    host = os.getenv('API_HOST', '0.0.0.0')
     
-    app.run(
-        host=os.getenv('API_HOST', '0.0.0.0'),
-        port=int(os.getenv('API_PORT', 5000)),
-        debug=True
+    uvicorn.run(
+        "app:app",
+        host=host,
+        port=port,
+        reload=True,
+        log_level="info"
     )

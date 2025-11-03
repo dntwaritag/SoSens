@@ -207,7 +207,7 @@ class SoilDataPreprocessor:
         }
     
     def calculate_fertilizer_needs(self, crop: str, ph: float, n: float, 
-                                   p: float, k: float) -> str:
+                                p: float, k: float) -> str:
         '''
         Calculate specific fertilizer recommendations based on crop and soil status
         '''
