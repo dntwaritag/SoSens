@@ -1,37 +1,61 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, JSON, Enum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
+import enum
 
 Base = declarative_base()
 
-class Farmer(Base):
-    '''Farmer model - stores farmer information'''
-    __tablename__ = 'farmers'
+class UserRole(str, enum.Enum):
+    FARMER = "farmer"
+    ADMIN = "admin"
+
+class User(Base):
+    '''User model - handles authentication for both farmers and admins'''
+    __tablename__ = 'users'
     
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), nullable=False)
-    phone_number = Column(String(20), unique=True, nullable=False, index=True)
-    district = Column(String(50), nullable=False)
+    email = Column(String(255), unique=True, index=True, nullable=True)
+    phone_number = Column(String(20), unique=True, index=True, nullable=True)
+    hashed_password = Column(String(255), nullable=False)
+    full_name = Column(String(100), nullable=False)
+    role = Column(Enum(UserRole), default=UserRole.FARMER, nullable=False)
+    
+    # Profile information
+    district = Column(String(50))
     sector = Column(String(50))
-    cell = Column(String(50))
     village = Column(String(50))
     farm_size = Column(Float)
-    registered_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Account status
     is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_login = Column(DateTime)
+    
+    # Password reset
+    reset_token = Column(String(255), nullable=True)
+    reset_token_expires = Column(DateTime, nullable=True)
+    
+    # Preferences
+    receive_notifications = Column(Boolean, default=True)
+    preferred_contact = Column(String(10), default='sms')  # 'sms' or 'email'
     
     # Relationships
-    soil_readings = relationship('SoilReading', back_populates='farmer', cascade='all, delete-orphan')
-    recommendations = relationship('Recommendation', back_populates='farmer', cascade='all, delete-orphan')
-    feedback = relationship('Feedback', back_populates='farmer', cascade='all, delete-orphan')
+    soil_readings = relationship('SoilReading', back_populates='user', cascade='all, delete-orphan')
+    recommendations = relationship('Recommendation', back_populates='user', cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f'<User {self.email or self.phone_number} - {self.role}>'
 
 class SoilReading(Base):
     '''Soil Reading model'''
     __tablename__ = 'soil_readings'
     
     id = Column(Integer, primary_key=True, index=True)
-    farmer_id = Column(Integer, ForeignKey('farmers.id'), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
     
+    # Soil parameters
     ph = Column(Float, nullable=False)
     nitrogen = Column(Float, nullable=False)
     phosphorus = Column(Float, nullable=False)
@@ -39,73 +63,82 @@ class SoilReading(Base):
     zinc = Column(Float)
     sulfur = Column(Float)
     
-    environmental_data = Column(JSON)
-    reading_date = Column(DateTime, default=datetime.utcnow, index=True)
-    reading_source = Column(String(20))
+    # Location
     location_lat = Column(Float)
     location_lon = Column(Float)
+    
+    # Metadata
+    reading_date = Column(DateTime, default=datetime.utcnow, index=True)
+    reading_source = Column(String(20), default='manual')
     notes = Column(Text)
     
     # Relationship
-    farmer = relationship('Farmer', back_populates='soil_readings')
+    user = relationship('User', back_populates='soil_readings')
 
 class Recommendation(Base):
-    '''Recommendation model'''
+    '''Crop Recommendation model'''
     __tablename__ = 'recommendations'
     
     id = Column(Integer, primary_key=True, index=True)
-    farmer_id = Column(Integer, ForeignKey('farmers.id'), nullable=False, index=True)
-    soil_reading_id = Column(Integer, ForeignKey('soil_readings.id'), index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    soil_reading_id = Column(Integer, ForeignKey('soil_readings.id'))
     
+    # Recommendation details
     recommended_crop = Column(String(50), nullable=False)
     confidence_score = Column(Float)
     alternative_crops = Column(JSON)
     
+    # Soil health
     soil_health_status = Column(String(20))
     soil_issues = Column(JSON)
     
+    # Advice
     fertilizer_recommendation = Column(Text)
     planting_season = Column(String(100))
-    spacing_recommendation = Column(String(100))
-    additional_tips = Column(Text)
+    weather_advice = Column(Text)
     
+    # Delivery
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    delivered_via = Column(String(20))
-    is_delivered = Column(Boolean, default=False)
+    is_sent = Column(Boolean, default=False)
+    sent_at = Column(DateTime)
     
     # Relationship
-    farmer = relationship('Farmer', back_populates='recommendations')
+    user = relationship('User', back_populates='recommendations')
 
-class Feedback(Base):
-    '''Feedback model'''
-    __tablename__ = 'feedback'
+class WeatherData(Base):
+    '''Weather data cache'''
+    __tablename__ = 'weather_data'
     
     id = Column(Integer, primary_key=True, index=True)
-    farmer_id = Column(Integer, ForeignKey('farmers.id'), nullable=False, index=True)
-    recommendation_id = Column(Integer, ForeignKey('recommendations.id'), index=True)
+    location = Column(String(100), nullable=False, index=True)
     
-    action_taken = Column(Boolean)
-    crop_planted = Column(String(50))
-    yield_achieved = Column(Float)
-    satisfaction_rating = Column(Integer)
-    comments = Column(Text)
+    # Weather info
+    temperature = Column(Float)
+    humidity = Column(Float)
+    rainfall = Column(Float)
+    wind_speed = Column(Float)
+    description = Column(String(100))
+    weather_data = Column(JSON)
     
-    submitted_at = Column(DateTime, default=datetime.utcnow)
-    harvest_date = Column(DateTime)
+    # Timestamp
+    recorded_at = Column(DateTime, default=datetime.utcnow)
     
-    # Relationship
-    farmer = relationship('Farmer', back_populates='feedback')
+    def __repr__(self):
+        return f'<Weather {self.location} - {self.recorded_at}>'
 
-class SystemLog(Base):
-    '''System Log model'''
-    __tablename__ = 'system_logs'
+class NotificationLog(Base):
+    '''Track sent notifications'''
+    __tablename__ = 'notification_logs'
     
     id = Column(Integer, primary_key=True, index=True)
-    log_type = Column(String(20))
-    endpoint = Column(String(100))
-    method = Column(String(10))
-    status_code = Column(Integer)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    
+    notification_type = Column(String(50))  # 'daily', 'recommendation', 'alert'
+    channel = Column(String(20))  # 'sms', 'email'
     message = Column(Text)
-    user_id = Column(Integer)
-    ip_address = Column(String(45))
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    
+    is_sent = Column(Boolean, default=False)
+    sent_at = Column(DateTime)
+    error_message = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)

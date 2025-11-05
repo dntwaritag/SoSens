@@ -1,94 +1,90 @@
 #!/usr/bin/env python3
-'''
-Database Initialization Script for FastAPI
-'''
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import models
-from datetime import datetime
+from auth import get_password_hash
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
 def init_database():
-    '''Initialize database with tables and sample data'''
+    DATABASE_URL = os.getenv('DATABASE_URL')
+    engine = create_engine(DATABASE_URL)
     
-    DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./rwanda_soil.db')
-    
-    # Create engine
-    if DATABASE_URL.startswith('sqlite'):
-        engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-    else:
-        engine = create_engine(DATABASE_URL)
-    
-    # Create all tables
+    # Create tables
     print("Creating database tables...")
     models.Base.metadata.create_all(bind=engine)
-    print("✓ Tables created successfully")
+    print(" Tables created")
     
-    # Create session
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    # Seed data
+    SessionLocal = sessionmaker(bind=engine)
     db = SessionLocal()
     
     try:
-        # Check if we need to seed data
-        farmer_count = db.query(models.Farmer).count()
+        # Check if admin exists
+        admin = db.query(models.User).filter(models.User.role == models.UserRole.ADMIN).first()
+        
+        if not admin:
+            print("\nCreating admin user...")
+            admin = models.User(
+                email="admin@rwandasoil.com",
+                phone_number="+250788000000",
+                hashed_password=get_password_hash("Admin@2024"),
+                full_name="System Administrator",
+                role=models.UserRole.ADMIN,
+                district="Kigali",
+                is_active=True,
+                is_verified=True
+            )
+            db.add(admin)
+            print(" Admin created")
+            print("  Email: admin@rwandasoil.com")
+            print("  Password: Admin@2024")
+        
+        # Check if sample farmers exist
+        farmer_count = db.query(models.User).filter(models.User.role == models.UserRole.FARMER).count()
         
         if farmer_count == 0:
-            print("\nSeeding sample data...")
+            print("\nCreating sample farmers...")
             
-            # Sample farmers for testing
-            sample_farmers = [
-                models.Farmer(
-                    name='Jean Baptiste Mukiza',
-                    phone_number='+250788123456',
-                    district='Kamonyi',
-                    sector='Musambira',
-                    cell='Cyeza',
-                    village='Nyarusange',
+            farmers = [
+                models.User(
+                    email="jean@example.com",
+                    phone_number="+250788111111",
+                    hashed_password=get_password_hash("Farmer@123"),
+                    full_name="Jean Baptiste Mukiza",
+                    role=models.UserRole.FARMER,
+                    district="Kamonyi",
+                    sector="Musambira",
+                    village="Nyarusange",
                     farm_size=0.5,
-                    registered_at=datetime.utcnow(),
                     is_active=True
                 ),
-                models.Farmer(
-                    name='Marie Claire Uwase',
-                    phone_number='+250788234567',
-                    district='Rwamagana',
-                    sector='Muhazi',
-                    cell='Gashoki',
-                    village='Kabuga',
+                models.User(
+                    phone_number="+250788222222",
+                    hashed_password=get_password_hash("Farmer@123"),
+                    full_name="Marie Claire Uwase",
+                    role=models.UserRole.FARMER,
+                    district="Rwamagana",
+                    sector="Muhazi",
+                    village="Kabuga",
                     farm_size=0.8,
-                    registered_at=datetime.utcnow(),
-                    is_active=True
-                ),
-                models.Farmer(
-                    name='Pierre Nkurunziza',
-                    phone_number='+250788345678',
-                    district='Kamonyi',
-                    sector='Rukoma',
-                    cell='Nyamabuye',
-                    village='Gikoro',
-                    farm_size=1.2,
-                    registered_at=datetime.utcnow(),
                     is_active=True
                 )
             ]
             
-            for farmer in sample_farmers:
+            for farmer in farmers:
                 db.add(farmer)
             
-            db.commit()
-            print(f"✓ Added {len(sample_farmers)} sample farmers")
-        else:
-            print(f"\nDatabase already contains {farmer_count} farmers")
+            print(f" Added {len(farmers)} sample farmers")
+        
+        db.commit()
         
         print("\n" + "="*80)
-        print("DATABASE INITIALIZATION COMPLETE")
+        print(" DATABASE INITIALIZATION COMPLETE")
         print("="*80)
-        print(f"Database URL: {DATABASE_URL}")
-        print(f"Total farmers: {db.query(models.Farmer).count()}")
+        print(f"Total users: {db.query(models.User).count()}")
         print("="*80)
         
     finally:

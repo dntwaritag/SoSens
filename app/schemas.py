@@ -1,211 +1,160 @@
-from pydantic import BaseModel, Field, validator
-from typing import Optional, List, Dict, Any
-from datetime import datetime, date
+from pydantic import BaseModel, Field, EmailStr, model_validator, ValidationError, validator
+from typing import Optional, List
+from datetime import datetime
+from enum import Enum
 
 # ============================================================================
-# FARMER SCHEMAS
+# ENUMS
 # ============================================================================
 
-class FarmerBase(BaseModel):
-    name: str = Field(..., min_length=2, max_length=100)
-    phone_number: str = Field(..., pattern=r'^\+?250\d{9}$')
-    district: str = Field(..., min_length=2, max_length=50)
-    sector: Optional[str] = Field(None, max_length=50)
-    cell: Optional[str] = Field(None, max_length=50)
-    village: Optional[str] = Field(None, max_length=50)
+class UserRole(str, Enum):
+    FARMER = "farmer"
+    ADMIN = "admin"
+
+class ContactMethod(str, Enum):
+    EMAIL = "email"
+    SMS = "sms"
+    PHONE = "phone"
+    BOTH = "both"
+
+# ============================================================================
+# AUTH SCHEMAS
+# ============================================================================
+
+# ...existing code...
+
+class UserRegister(BaseModel):
+    # Required
+    full_name: str = Field(..., min_length=2, max_length=100, description="Full name of the user")
+    password: str = Field(..., min_length=8, max_length=100, description="Password must be at least 8 characters")
+    
+    # Contact (at least one required)
+    email: Optional[EmailStr] = Field(None, description="Valid email address")
+    phone_number: Optional[str] = Field(
+        None, 
+        pattern=r'^\+250[7][2389]\d{7}$',
+        description="Rwanda phone number in format: +250xxxxxxxxx"
+    )
+    
+    # Profile
+    district: str = Field(..., min_length=2, description="District name in Rwanda")
+    sector: Optional[str] = Field(None, min_length=2, description="Sector name")
+    village: Optional[str] = Field(None, min_length=2, description="Village name")
     farm_size: Optional[float] = Field(None, gt=0, description="Farm size in hectares")
+    
+    # Role and Preferences
+    role: UserRole = Field(default=UserRole.FARMER, description="User role (farmer or admin)")
+    preferred_contact: ContactMethod = Field(
+        default=ContactMethod.PHONE,
+        description="Preferred contact method"
+    )
+    receive_notifications: bool = Field(default=True, description="Receive notifications flag")
 
-class FarmerCreate(FarmerBase):
-    pass
+    @model_validator(mode='after')
+    def validate_contact_info(self) -> 'UserRegister':
+        email, phone = self.email, self.phone_number
+        if not email and not phone:
+            raise ValueError('Either email or phone number must be provided')
+        if self.preferred_contact == ContactMethod.EMAIL and not email:
+            raise ValueError('Email is required when email is the preferred contact method')
+        if self.preferred_contact == ContactMethod.PHONE and not phone:
+            raise ValueError('Phone number is required when phone is the preferred contact method')
+        return self
 
-class FarmerUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=2, max_length=100)
-    district: Optional[str] = Field(None, min_length=2, max_length=50)
-    sector: Optional[str] = None
-    cell: Optional[str] = None
-    village: Optional[str] = None
-    farm_size: Optional[float] = Field(None, gt=0)
-    is_active: Optional[bool] = None
+class UserLogin(BaseModel):
+    username: str  # Can be email or phone
+    password: str
 
-class FarmerResponse(FarmerBase):
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    user: 'UserResponse'
+
+class PasswordReset(BaseModel):
+    username: str  # Email or phone
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=8)
+
+class UserResponse(BaseModel):
     id: int
-    registered_at: datetime
+    email: Optional[str]
+    phone_number: Optional[str]
+    full_name: str
+    role: UserRole
+    district: Optional[str]
     is_active: bool
+    is_verified: bool
+    created_at: datetime
     
     class Config:
-        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "full_name": "John Doe",
+                "password": "strongpass123",
+                "email": "john.doe@example.com",
+                "phone_number": "+250722123456",
+                "district": "Kicukiro",
+                "sector": "Gahanga",
+                "village": "Murindi",
+                "farm_size": 2.5,
+                "role": "farmer",
+                "preferred_contact": "phone",
+                "receive_notifications": True
+            }
+        }
 
 # ============================================================================
-# SOIL READING SCHEMAS
+# SOIL & PREDICTION SCHEMAS
 # ============================================================================
 
-class SoilReadingBase(BaseModel):
-    ph: float = Field(..., ge=3.0, le=10.0, description="Soil pH (3.0-10.0)")
-    nitrogen: float = Field(..., ge=0, le=200, description="Nitrogen in kg/ha")
-    phosphorus: float = Field(..., ge=0, le=150, description="Phosphorus in kg/ha")
-    potassium: float = Field(..., ge=0, le=600, description="Potassium in kg/ha")
-    zinc: Optional[float] = Field(None, ge=0, le=100)
-    sulfur: Optional[float] = Field(None, ge=0, le=100)
-    environmental_data: Optional[Dict[str, Any]] = None
-    reading_source: Optional[str] = Field("manual", pattern=r'^(manual|sensor|lab)$')
-    location_lat: Optional[float] = Field(None, ge=-90, le=90)
-    location_lon: Optional[float] = Field(None, ge=-180, le=180)
+class SoilReadingCreate(BaseModel):
+    ph: float = Field(..., ge=3.0, le=10.0)
+    nitrogen: float = Field(..., ge=0, le=200)
+    phosphorus: float = Field(..., ge=0, le=150)
+    potassium: float = Field(..., ge=0, le=600)
+    zinc: Optional[float] = Field(None, ge=0)
+    sulfur: Optional[float] = Field(None, ge=0)
+    location_lat: Optional[float] = None
+    location_lon: Optional[float] = None
     notes: Optional[str] = None
 
-class SoilReadingCreate(SoilReadingBase):
-    farmer_id: int
-
-class SoilReadingResponse(SoilReadingBase):
-    id: int
-    farmer_id: int
-    reading_date: datetime
-    
-    class Config:
-        from_attributes = True
-
-# ============================================================================
-# PREDICTION SCHEMAS
-# ============================================================================
-
 class PredictionRequest(BaseModel):
-    farmer_id: Optional[int] = None
-    ph: float = Field(..., alias="Ph", ge=3.0, le=10.0)
-    nitrogen: float = Field(..., alias="N", ge=0, le=200)
-    phosphorus: float = Field(..., alias="P", ge=0, le=150)
-    potassium: float = Field(..., alias="K", ge=0, le=600)
-    zinc: Optional[float] = Field(None, alias="Zn", ge=0, le=100)
-    sulfur: Optional[float] = Field(None, alias="S", ge=0, le=100)
-    send_sms: Optional[bool] = False
-    
-    class Config:
-        populate_by_name = True
-
-class AlternativeCrop(BaseModel):
-    crop: str
-    confidence: float
-    confidence_percent: str
-
-class SoilHealthInfo(BaseModel):
-    status: str
-    ph: float
-    nitrogen: float
-    phosphorus: float
-    potassium: float
-    issues: List[str]
-
-class CropRecommendations(BaseModel):
-    fertilizer: str
-    base_fertilizer: str
-    planting_season: str
-    spacing: str
-    planting_depth: str
-    maturity_days: str
-    water_requirement: str
-    tips: List[str]
-    common_pests: List[str]
+    ph: float = Field(..., ge=3.0, le=10.0)
+    nitrogen: float = Field(..., ge=0, le=200)
+    phosphorus: float = Field(..., ge=0, le=150)
+    potassium: float = Field(..., ge=0, le=600)
+    zinc: Optional[float] = None
+    sulfur: Optional[float] = None
+    include_weather: bool = True
 
 class PredictionResponse(BaseModel):
     success: bool
-    prediction: Dict[str, Any]
-    alternatives: List[AlternativeCrop]
-    soil_health: SoilHealthInfo
-    recommendations: CropRecommendations
-    next_steps: List[str]
-    recommendation_id: Optional[int] = None
-    reading_id: Optional[int] = None
-
-# ============================================================================
-# RECOMMENDATION SCHEMAS
-# ============================================================================
-
-class RecommendationResponse(BaseModel):
-    id: int
-    farmer_id: int
-    soil_reading_id: Optional[int]
-    recommended_crop: str
-    confidence_score: Optional[float]
-    alternative_crops: Optional[List[Dict[str, Any]]]
-    soil_health_status: Optional[str]
-    soil_issues: Optional[List[str]]
-    fertilizer_recommendation: Optional[str]
-    planting_season: Optional[str]
-    spacing_recommendation: Optional[str]
-    additional_tips: Optional[str]
-    created_at: datetime
-    delivered_via: Optional[str]
-    is_delivered: bool
-    
-    class Config:
-        from_attributes = True
-
-# ============================================================================
-# FEEDBACK SCHEMAS
-# ============================================================================
-
-class FeedbackCreate(BaseModel):
-    farmer_id: int
-    recommendation_id: int
-    action_taken: Optional[bool] = None
-    crop_planted: Optional[str] = None
-    yield_achieved: Optional[float] = Field(None, ge=0)
-    satisfaction_rating: Optional[int] = Field(None, ge=1, le=5)
-    comments: Optional[str] = None
-    harvest_date: Optional[date] = None
-
-class FeedbackResponse(BaseModel):
-    id: int
-    farmer_id: int
-    recommendation_id: int
-    action_taken: Optional[bool]
-    crop_planted: Optional[str]
-    yield_achieved: Optional[float]
-    satisfaction_rating: Optional[int]
-    comments: Optional[str]
-    submitted_at: datetime
-    harvest_date: Optional[date]
-    
-    class Config:
-        from_attributes = True
-
-# ============================================================================
-# ANALYTICS SCHEMAS
-# ============================================================================
-
-class DashboardSummary(BaseModel):
-    total_farmers: int
-    active_farmers: int
-    total_soil_readings: int
-    total_recommendations: int
-    total_feedback: int
-    average_satisfaction: float
-
-class DistrictStats(BaseModel):
-    district: str
-    farmers: int
-
-class CropStats(BaseModel):
     crop: str
-    count: int
-
-class SoilHealthStats(BaseModel):
-    status: str
-    count: int
-
-class DashboardResponse(BaseModel):
-    success: bool
-    summary: DashboardSummary
-    districts: List[DistrictStats]
-    top_crops: List[CropStats]
-    soil_health: List[SoilHealthStats]
+    confidence: float
+    soil_health: str
+    fertilizer_advice: str
+    planting_season: str
+    weather_advice: Optional[str] = None
+    alternatives: List[dict]
 
 # ============================================================================
-# PAGINATION
+# WEATHER SCHEMAS
 # ============================================================================
 
-class PaginatedResponse(BaseModel):
-    success: bool
-    items: List[Any]
-    total: int
-    page: int
-    pages: int
-    per_page: int
+class WeatherResponse(BaseModel):
+    location: str
+    temperature: float
+    humidity: float
+    description: str
+    rainfall_forecast: Optional[float] = None
+    advice: str
+
+# ============================================================================
+# NOTIFICATION SCHEMAS
+# ============================================================================
+
+class NotificationPreferences(BaseModel):
+    receive_notifications: bool
+    preferred_contact: ContactMethod

@@ -6,7 +6,7 @@ API Testing Script for FastAPI
 import requests
 import json
 
-BASE_URL = 'http://localhost:5000'
+BASE_URL = 'http://localhost:8000'
 
 def test_health_check():
     '''Test health endpoint'''
