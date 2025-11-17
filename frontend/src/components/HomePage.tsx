@@ -1,5 +1,6 @@
 import React from 'react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { Card, CardContent } from './ui/card';
+import { Button } from './ui/button';
 import { Sprout, CloudRain, Beaker, TrendingUp } from 'lucide-react';
 
 interface HomePageProps {
@@ -9,129 +10,131 @@ interface HomePageProps {
 export function HomePage({ onNavigate }: HomePageProps) {
     const features = [
         {
-            icon: <Beaker className="w-12 h-12 text-green-600" />,
+            icon: <Beaker className="w-10 h-10 text-green-600" />,
             title: 'Soil Analysis',
-            description: 'Comprehensive soil testing including pH, nutrients, and mineral content for optimal crop selection.',
+            description: 'Comprehensive soil testing for optimal crop selection',
         },
         {
-            icon: <CloudRain className="w-12 h-12 text-green-600" />,
-            title: 'Weather Integration',
-            description: 'Seasonal weather data analysis to match crops with your local climate patterns.',
+            icon: <CloudRain className="w-10 h-10 text-green-600" />,
+            title: 'Weather Data',
+            description: 'Seasonal weather analysis for crop matching',
         },
         {
-            icon: <TrendingUp className="w-12 h-12 text-green-600" />,
-            title: 'AI-Powered Predictions',
-            description: 'Advanced machine learning models trained on Rwanda agricultural data for accurate recommendations.',
+            icon: <TrendingUp className="w-10 h-10 text-green-600" />,
+            title: 'AI Predictions',
+            description: 'Machine learning powered recommendations',
         },
         {
-            icon: <Sprout className="w-12 h-12 text-green-600" />,
-            title: 'Crop Optimization',
-            description: 'Get recommendations for Maize, Wheat, Beans, Potatoes, Cassava, Sorghum and more.',
+            icon: <Sprout className="w-10 h-10 text-green-600" />,
+            title: 'Crop Selection',
+            description: 'Optimized recommendations for Rwandan agriculture',
         },
     ];
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Hero Section */}
-            <section className="relative bg-green-700 text-white py-20">
-                <div className="absolute inset-0 opacity-20">
-                    <ImageWithFallback 
-                        src="https://images.unsplash.com/photo-1739440426767-960f31dada38?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyd2FuZGElMjBmYXJtZXIlMjBhZ3JpY3VsdHVyZXxlbnwxfHx8fDE3NjA0MzYyNTN8MA&ixlib=rb-4.1.0&q=80&w=1080"
-                        alt="Rwanda Agriculture"
-                        className="w-full h-full object-cover"
-                    />
-                </div>
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <section className="bg-green-600 text-white py-20">
+                <div className="container mx-auto px-4">
                     <div className="max-w-3xl mx-auto text-center">
                         <h1 className="mb-6 text-white">
                             Rwanda Crop Recommendation System
                         </h1>
-                        <p className="mb-8">
-                            Empowering Rwandan farmers with AI-driven crop recommendations based on soil quality and weather patterns. Make informed decisions for better yields and sustainable farming.
+                        <p className="mb-8 text-lg text-green-50">
+                            AI-driven crop recommendations based on soil quality and weather patterns for Rwandan farmers.
                         </p>
-                        <button
-                            onClick={() => onNavigate('predict')}
-                            className="bg-white text-green-700 px-8 py-3 rounded-lg hover:bg-green-50 transition-colors shadow-lg"
-                        >
-                            Get Your Recommendation
-                        </button>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <Button
+                                onClick={() => onNavigate('register')}
+                                size="lg"
+                                className="bg-white text-green-700 hover:bg-green-50"
+                            >
+                                Register
+                            </Button>
+                            <Button
+                                onClick={() => onNavigate('login')}
+                                size="lg"
+                                variant="outline"
+                                className="border-white text-white hover:bg-green-700"
+                            >
+                                Login
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* Features Section */}
             <section className="py-16 bg-white">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="container mx-auto px-4">
                     <div className="text-center mb-12">
-                        <h2 className="mb-4">How It Works</h2>
+                        <h2 className="mb-4 text-gray-800">System Features</h2>
                         <p className="text-gray-600 max-w-2xl mx-auto">
-                            Our system combines soil analysis, weather data, and machine learning to provide personalized crop recommendations for your farm.
+                            Combining soil analysis, weather data, and machine learning for accurate crop recommendations.
                         </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                         {features.map((feature, index) => (
-                            <div
-                                key={index}
-                                className="p-6 bg-gray-50 rounded-xl hover:shadow-lg transition-shadow"
-                            >
-                                <div className="flex justify-center mb-4">
-                                    {feature.icon}
-                                </div>
-                                <h3 className="text-center mb-3">{feature.title}</h3>
-                                <p className="text-gray-600 text-center">
-                                    {feature.description}
-                                </p>
-                            </div>
+                            <Card key={index}>
+                                <CardContent className="pt-6">
+                                    <div className="flex justify-center mb-4">
+                                        {feature.icon}
+                                    </div>
+                                    <h3 className="text-center mb-3 text-gray-800">{feature.title}</h3>
+                                    <p className="text-gray-600 text-center text-sm">
+                                        {feature.description}
+                                    </p>
+                                </CardContent>
+                            </Card>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* CTA Section */}
-            <section className="py-16 bg-green-50">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-8 md:p-12">
-                        <div className="grid md:grid-cols-2 gap-8 items-center">
-                            <div>
-                                <h2 className="mb-4">Ready to Get Started?</h2>
-                                <p className="text-gray-600 mb-6">
-                                    Input your soil and weather data to receive personalized crop recommendations powered by AI. Our system analyzes multiple factors to ensure you plant the right crop for your conditions.
+            <section className="py-16 bg-gray-50">
+                <div className="container mx-auto px-4">
+                    <Card className="max-w-4xl mx-auto">
+                        <CardContent className="p-8 md:p-12">
+                            <div className="text-center">
+                                <h2 className="mb-4 text-gray-800">Get Started</h2>
+                                <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
+                                    Register for an account to access personalized crop recommendations based on your soil and weather conditions.
                                 </p>
-                                <button
-                                    onClick={() => onNavigate('predict')}
-                                    className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
-                                >
-                                    Start Prediction
-                                </button>
+                                <div className="flex gap-4 justify-center">
+                                    <Button
+                                        onClick={() => onNavigate('register')}
+                                        size="lg"
+                                        className="bg-green-600 hover:bg-green-700"
+                                    >
+                                        Create Account
+                                    </Button>
+                                    <Button
+                                        onClick={() => onNavigate('about')}
+                                        size="lg"
+                                        variant="outline"
+                                    >
+                                        Learn More
+                                    </Button>
+                                </div>
                             </div>
-                            <div className="rounded-lg overflow-hidden shadow-md">
-                                <ImageWithFallback
-                                    src="https://images.unsplash.com/photo-1710090720809-527cefdac598?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2lsJTIwdGVzdGluZyUyMGFncmljdWx0dXJlfGVufDF8fHx8MTc2MDM1NDIzMHww&ixlib=rb-4.1.0&q=80&w=1080"
-                                    alt="Soil Testing"
-                                    className="w-full h-64 object-cover"
-                                />
-                            </div>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </section>
 
-            {/* Stats Section */}
-            <section className="py-16 bg-white">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-                        <div className="p-6">
+            <section className="py-12 bg-white">
+                <div className="container mx-auto px-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center max-w-3xl mx-auto">
+                        <div>
                             <div className="text-green-700 mb-2">6+</div>
-                            <p className="text-gray-600">Supported Crops</p>
+                            <p className="text-gray-600 text-sm">Supported Crops</p>
                         </div>
-                        <div className="p-6">
-                            <div className="text-green-700 mb-2">95%+</div>
-                            <p className="text-gray-600">Prediction Accuracy</p>
+                        <div>
+                            <div className="text-green-700 mb-2">95%</div>
+                            <p className="text-gray-600 text-sm">Prediction Accuracy</p>
                         </div>
-                        <div className="p-6">
+                        <div>
                             <div className="text-green-700 mb-2">19</div>
-                            <p className="text-gray-600">Data Points Analyzed</p>
+                            <p className="text-gray-600 text-sm">Data Points</p>
                         </div>
                     </div>
                 </div>
