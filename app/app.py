@@ -1,5 +1,5 @@
 """
-Complete FastAPI application with all bugs fixed
+Complete FastAPI application with all endpoints including missing preferences endpoint
 """
 
 from fastapi import FastAPI, Depends, HTTPException, status, Body
@@ -137,11 +137,10 @@ async def register(user_data: schemas.UserRegister, db: Session = Depends(get_db
 
 @app.post("/api/auth/login", response_model=schemas.Token, tags=["Authentication"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """Login with email or phone - expects form-encoded data, NOT JSON"""
+    """Login with email or phone"""
     
     print(f"LOGIN ATTEMPT: username={form_data.username}, password={'*' * len(form_data.password)}")
 
-    # Use the authenticate_user function
     user = authenticate_user(db, form_data.username, form_data.password)
 
     if not user:
@@ -179,7 +178,7 @@ async def forgot_password(data: schemas.PasswordReset, db: Session = Depends(get
         (models.User.email == data.username) | (models.User.phone_number == data.username)
     ).first()
     
-    # Base response - always return success for security
+    # Base response
     response_data = {
         "success": True,
         "message": "If account exists, reset instructions sent"
@@ -231,6 +230,61 @@ async def get_me(current_user: models.User = Depends(get_current_user)):
     """Get current user info"""
     return current_user
 
+@app.put("/api/preferences", tags=["User"])
+async def update_preferences(
+    preferences: dict = Body(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update user preferences (contact method, notifications)"""
+    
+    try:
+        # Update preferred contact method
+        if "preferred_contact" in preferences:
+            if preferences["preferred_contact"] not in ["sms", "email"]:
+                raise HTTPException(400, "preferred_contact must be 'sms' or 'email'")
+            current_user.preferred_contact = preferences["preferred_contact"]
+        
+        # Update notification preference
+        if "receive_notifications" in preferences:
+            current_user.receive_notifications = bool(preferences["receive_notifications"])
+        
+        # Update farm size if provided
+        if "farm_size" in preferences:
+            current_user.farm_size = float(preferences["farm_size"])
+        
+        # Update district if provided
+        if "district" in preferences:
+            current_user.district = preferences["district"]
+        
+        # Update sector if provided
+        if "sector" in preferences:
+            current_user.sector = preferences["sector"]
+        
+        # Update village if provided
+        if "village" in preferences:
+            current_user.village = preferences["village"]
+        
+        db.commit()
+        db.refresh(current_user)
+        
+        return {
+            "success": True,
+            "message": "Preferences updated successfully",
+            "user": {
+                "id": current_user.id,
+                "preferred_contact": current_user.preferred_contact,
+                "receive_notifications": current_user.receive_notifications,
+                "farm_size": current_user.farm_size,
+                "district": current_user.district,
+                "sector": current_user.sector,
+                "village": current_user.village
+            }
+        }
+    except Exception as e:
+        print(f"Error updating preferences: {e}")
+        raise HTTPException(500, f"Failed to update preferences: {str(e)}")
+
 # ============================================================================
 # FARMER ENDPOINTS
 # ============================================================================
@@ -238,10 +292,14 @@ async def get_me(current_user: models.User = Depends(get_current_user)):
 @app.post("/api/soil-readings", tags=["Farmers"])
 async def submit_soil_reading(
     reading: schemas.SoilReadingCreate,
-    current_user: models.User = Depends(get_current_farmer),
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Farmer: Submit soil reading"""
+    
+    # Verify user is farmer or admin
+    if current_user.role not in [models.UserRole.FARMER, models.UserRole.ADMIN]:
+        raise HTTPException(403, "Only farmers can submit soil readings")
     
     new_reading = models.SoilReading(
         user_id=current_user.id,
@@ -260,10 +318,10 @@ async def submit_soil_reading(
 
 @app.get("/api/soil-readings", tags=["Farmers"])
 async def get_soil_readings(
-    current_user: models.User = Depends(get_current_farmer),
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Farmer: Get own soil readings"""
+    """Get own soil readings"""
     
     readings = db.query(models.SoilReading).filter(
         models.SoilReading.user_id == current_user.id
@@ -288,10 +346,10 @@ async def get_soil_readings(
 @app.post("/api/predict", response_model=schemas.PredictionResponse, tags=["Farmers"])
 async def get_prediction(
     request: schemas.PredictionRequest,
-    current_user: models.User = Depends(get_current_farmer),
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Farmer: Get crop recommendation with notification"""
+    """Get crop recommendation with notification"""
     
     # Prepare data
     soil_data = {
@@ -372,10 +430,10 @@ async def get_prediction(
 
 @app.get("/api/recommendations", tags=["Farmers"])
 async def get_recommendations(
-    current_user: models.User = Depends(get_current_farmer),
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Farmer: Get recommendation history"""
+    """Get recommendation history"""
     
     recs = db.query(models.Recommendation).filter(
         models.Recommendation.user_id == current_user.id
@@ -399,10 +457,10 @@ async def get_recommendations(
 
 @app.get("/api/weather", response_model=schemas.WeatherResponse, tags=["Farmers"])
 async def get_weather(
-    current_user: models.User = Depends(get_current_farmer),
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Farmer: Get current weather"""
+    """Get current weather"""
     
     weather = weather_service.get_weather(current_user.district, db)
     if not weather:
@@ -420,10 +478,14 @@ async def get_all_users(
     limit: int = 50,
     role: Optional[str] = None,
     district: Optional[str] = None,
-    current_user: models.User = Depends(get_current_admin),
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Admin: Get all users"""
+    
+    # Verify admin role
+    if current_user.role != models.UserRole.ADMIN:
+        raise HTTPException(403, "Admin access required")
     
     query = db.query(models.User)
     
@@ -455,10 +517,14 @@ async def get_all_users(
 
 @app.get("/api/admin/analytics", tags=["Admin"])
 async def get_analytics(
-    current_user: models.User = Depends(get_current_admin),
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Admin: System analytics"""
+    
+    # Verify admin role
+    if current_user.role != models.UserRole.ADMIN:
+        raise HTTPException(403, "Admin access required")
     
     from sqlalchemy import func
     
@@ -505,10 +571,14 @@ async def get_analytics(
 
 @app.post("/api/admin/send-weather", tags=["Admin"])
 async def admin_send_weather(
-    current_user: models.User = Depends(get_current_admin),
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Admin: Manually trigger weather notifications"""
+    
+    # Verify admin role
+    if current_user.role != models.UserRole.ADMIN:
+        raise HTTPException(403, "Admin access required")
     
     result = await notification_service.send_daily_weather(db)
     
@@ -523,10 +593,17 @@ async def admin_send_weather(
 async def broadcast_message(
     message: str = Body(..., embed=True),
     district: Optional[str] = Body(None, embed=True),
-    current_user: models.User = Depends(get_current_admin),
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Admin: Broadcast custom message to farmers"""
+    
+    # Verify admin role
+    if current_user.role != models.UserRole.ADMIN:
+        raise HTTPException(403, "Admin access required")
+    
+    if not message or len(message.strip()) == 0:
+        raise HTTPException(400, "Message cannot be empty")
     
     query = db.query(models.User).filter(
         models.User.role == models.UserRole.FARMER,
@@ -540,6 +617,8 @@ async def broadcast_message(
     sent = 0
     failed = 0
     
+    print(f"📢 Broadcasting message to {len(users)} farmers...")
+    
     for user in users:
         try:
             if user.preferred_contact == 'sms' and user.phone_number:
@@ -547,7 +626,7 @@ async def broadcast_message(
             elif user.preferred_contact == 'email' and user.email:
                 success = await notification_service.send_email(
                     user.email,
-                    "Important Message from SoSens",
+                    "📢 Important Message from SoSens",
                     message,
                     db,
                     user.id
@@ -571,14 +650,101 @@ async def broadcast_message(
         "failed": failed
     }
 
+@app.post("/api/admin/send-predictions", tags=["Admin"])
+async def send_bulk_predictions(
+    crop: str = Body(..., embed=True),
+    district: Optional[str] = Body(None, embed=True),
+    message: Optional[str] = Body(None, embed=True),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Admin: Send crop prediction/advice to farmers in a district"""
+    
+    # Verify admin role
+    if current_user.role != models.UserRole.ADMIN:
+        raise HTTPException(403, "Admin access required")
+    
+    if not crop or len(crop.strip()) == 0:
+        raise HTTPException(400, "Crop name cannot be empty")
+    
+    # Get farmers in district or all farmers
+    query = db.query(models.User).filter(
+        models.User.role == models.UserRole.FARMER,
+        models.User.is_active == True,
+        models.User.receive_notifications == True
+    )
+    
+    if district:
+        query = query.filter(models.User.district == district)
+    
+    users = query.all()
+    sent = 0
+    failed = 0
+    
+    print(f"📢 Sending {crop} prediction to {len(users)} farmers...")
+    
+    for user in users:
+        try:
+            prediction_message = message or f"""
+🌾 Recommended Crop: {crop}
+
+Based on current soil and weather conditions in {user.district}, we recommend planting {crop}.
+
+For detailed personalized recommendations, please:
+1. Submit your soil reading in the app
+2. Get a customized prediction
+
+Thank you for using SoSens!
+            """.strip()
+            
+            if user.preferred_contact == 'sms' and user.phone_number:
+                success = await notification_service.send_sms(
+                    user.phone_number, 
+                    prediction_message, 
+                    db, 
+                    user.id
+                )
+            elif user.preferred_contact == 'email' and user.email:
+                success = await notification_service.send_email(
+                    user.email,
+                    f"🌾 Crop Recommendation: {crop}",
+                    prediction_message,
+                    db,
+                    user.id
+                )
+            else:
+                success = False
+            
+            if success:
+                sent += 1
+            else:
+                failed += 1
+        except Exception as e:
+            print(f"Prediction send error for user {user.id}: {e}")
+            failed += 1
+    
+    return {
+        "success": True,
+        "message": f"Crop prediction sent: {sent} successful, {failed} failed",
+        "crop": crop,
+        "district": district or "All Districts",
+        "total_farmers": len(users),
+        "sent": sent,
+        "failed": failed
+    }
+
 @app.get("/api/admin/notification-logs", tags=["Admin"])
 async def get_notification_logs(
     skip: int = 0,
     limit: int = 100,
-    current_user: models.User = Depends(get_current_admin),
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Admin: View notification logs"""
+    
+    # Verify admin role
+    if current_user.role != models.UserRole.ADMIN:
+        raise HTTPException(403, "Admin access required")
     
     logs = db.query(models.NotificationLog).order_by(
         models.NotificationLog.created_at.desc()
