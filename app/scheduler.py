@@ -1,39 +1,31 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 import pytz
-import os
+from config import settings
 from database import SessionLocal
 from notification_service import notification_service
 
-TIMEZONE = pytz.timezone(os.getenv('TIMEZONE', 'Africa/Kigali'))
-NOTIFICATION_TIME = os.getenv('NOTIFICATION_TIME', '06:00')
-
-scheduler = AsyncIOScheduler(timezone=TIMEZONE)
+scheduler = AsyncIOScheduler(timezone=pytz.timezone(settings.TIMEZONE))
 
 async def send_daily_notifications():
-    """Job to send daily notifications"""
     db = SessionLocal()
     try:
-        await notification_service.send_daily_update(db)
-        print(f"Daily notifications sent at {NOTIFICATION_TIME}")
+        await notification_service.send_daily_weather(db)
+        print(f"✓ Daily weather notifications sent at {settings.NOTIFICATION_TIME}")
     finally:
         db.close()
 
 def start_scheduler():
-    """Start the task scheduler"""
-    hour, minute = NOTIFICATION_TIME.split(':')
-    
+    hour, minute = settings.NOTIFICATION_TIME.split(':')
     scheduler.add_job(
         send_daily_notifications,
-        trigger=CronTrigger(hour=int(hour), minute=int(minute), timezone=TIMEZONE),
-        id='daily_notifications',
-        name='Send daily soil recommendations',
+        trigger=CronTrigger(hour=int(hour), minute=int(minute), timezone=pytz.timezone(settings.TIMEZONE)),
+        id='daily_weather',
+        name='Send daily weather notifications',
         replace_existing=True
     )
-    
     scheduler.start()
-    print(f" Scheduler started - Daily notifications at {NOTIFICATION_TIME} {TIMEZONE}")
+    print(f"✓ Scheduler started - Daily notifications at {settings.NOTIFICATION_TIME}")
 
 def stop_scheduler():
-    """Stop the scheduler"""
     scheduler.shutdown()

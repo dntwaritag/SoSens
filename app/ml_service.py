@@ -1,220 +1,82 @@
 import joblib
 import json
 import numpy as np
-from typing import Dict, List, Tuple
-from preprocess import SoilDataPreprocessor
+from typing import Dict, Optional
+from config import settings
 
 class MLPredictionService:
-    '''Machine Learning Prediction Service'''
-    
-    def __init__(self, model_path: str, scaler_path: str, 
-                encoder_path: str, features_path: str, metadata_path: str):
-        '''Initialize ML service with saved models'''
-        
-        print("Loading ML models...")
-        self.model = joblib.load(model_path)
-        self.label_encoder = joblib.load(encoder_path)
-        
-        with open(metadata_path, 'r') as f:
-            self.metadata = json.load(f)
-        
-        self.preprocessor = SoilDataPreprocessor(scaler_path, features_path)
-        
-        print(f"✓ Model loaded: {self.metadata['model_name']}")
-        print(f"✓ Accuracy: {self.metadata['accuracy']:.2%}")
-        print(f"✓ Supported crops: {len(self.metadata['classes'])}")
-        
-        # Load crop knowledge base
-        self._load_crop_recommendations()
-    
-    def _load_crop_recommendations(self):
-        '''Load crop-specific recommendations database'''
-        self.crop_database = {
-            'Beans': {
-                'ph_range': '6.0-7.0',
-                'ph_optimal': 6.5,
-                'fertilizer_base': '50kg DAP + 25kg Urea per hectare',
-                'planting_season': 'Season A (September-December) and Season B (February-May)',
-                'spacing': '40cm between rows, 10cm within row',
-                'planting_depth': '3-5cm',
-                'maturity_days': '75-90 days',
-                'tips': [
-                    'Rotate with maize for better soil health',
-                    'Apply manure 2 weeks before planting',
-                    'First weeding at 2-3 weeks after planting'
-                ],
-                'common_pests': ['Bean fly', 'Aphids', 'Bean beetle'],
-                'water_requirement': 'Moderate (400-500mm during season)'
-            },
-            'Maize': {
-                'ph_range': '5.5-7.0',
-                'ph_optimal': 6.0,
-                'fertilizer_base': '100kg NPK 17:17:17 + 50kg Urea per hectare',
-                'planting_season': 'Season A and Season B with adequate rainfall',
-                'spacing': '75cm between rows, 25cm within row',
-                'planting_depth': '5cm',
-                'maturity_days': '90-120 days',
-                'tips': [
-                    'Top-dress with urea when plants are knee-high',
-                    'Plant 2-3 seeds per hole, thin to 1 strongest plant',
-                    'Requires good drainage'
-                ],
-                'common_pests': ['Stalk borer', 'Fall armyworm', 'Maize weevil'],
-                'water_requirement': 'High (500-800mm during season)'
-            },
-            'Cassava': {
-                'ph_range': '5.5-6.5',
-                'ph_optimal': 6.0,
-                'fertilizer_base': '20kg NPK + organic matter per hectare',
-                'planting_season': 'Can be planted throughout the year',
-                'spacing': '1m x 1m',
-                'planting_depth': '10-15cm (stem cutting)',
-                'maturity_days': '270-360 days (9-12 months)',
-                'tips': [
-                    'Very drought-resistant crop',
-                    'Use healthy stem cuttings 20-25cm long',
-                    'Minimal fertilizer needs - good for poor soils',
-                    'Control weeds in first 3 months'
-                ],
-                'common_pests': ['Cassava mosaic virus', 'Mealybugs', 'Green mites'],
-                'water_requirement': 'Low (400-600mm during season)'
-            },
-            'Potato': {
-                'ph_range': '5.0-6.5',
-                'ph_optimal': 5.5,
-                'fertilizer_base': '150kg NPK 17:17:17 per hectare',
-                'planting_season': 'Season B preferred (cooler conditions)',
-                'spacing': '75cm between rows, 30cm within row',
-                'planting_depth': '10cm',
-                'maturity_days': '90-120 days',
-                'tips': [
-                    'Hill soil around plants as they grow',
-                    'Watch for late blight disease',
-                    'Harvest when leaves turn yellow'
-                ],
-                'common_pests': ['Late blight', 'Potato tuber moth', 'Aphids'],
-                'water_requirement': 'Moderate to High (500-700mm)'
-            },
-            'Rice': {
-                'ph_range': '5.5-6.5',
-                'ph_optimal': 6.0,
-                'fertilizer_base': '100kg NPK + 50kg Urea per hectare',
-                'planting_season': 'Depends on water availability (marshlands)',
-                'spacing': '20cm x 20cm',
-                'planting_depth': '2-3cm',
-                'maturity_days': '120-150 days',
-                'tips': [
-                    'Maintain water levels in paddy',
-                    'Control weeds in first 40 days',
-                    'Drain field 2 weeks before harvest'
-                ],
-                'common_pests': ['Rice blast', 'Stem borers', 'Birds'],
-                'water_requirement': 'Very High (requires flooding)'
-            },
-            'Wheat': {
-                'ph_range': '6.0-7.0',
-                'ph_optimal': 6.5,
-                'fertilizer_base': '100kg DAP + 50kg Urea per hectare',
-                'planting_season': 'Season B (cooler, drier conditions)',
-                'spacing': 'Broadcast or drill in 20cm rows',
-                'planting_depth': '3-5cm',
-                'maturity_days': '120-150 days',
-                'tips': [
-                    'Requires cooler temperatures',
-                    'Good drainage essential',
-                    'Top-dress with urea at tillering stage'
-                ],
-                'common_pests': ['Rust diseases', 'Aphids', 'Birds'],
-                'water_requirement': 'Moderate (450-650mm)'
-            },
-            'Sorghum': {
-                'ph_range': '5.5-7.5',
-                'ph_optimal': 6.5,
-                'fertilizer_base': '50kg NPK + 30kg Urea per hectare',
-                'planting_season': 'Season A and B',
-                'spacing': '75cm x 15cm',
-                'planting_depth': '3-5cm',
-                'maturity_days': '100-130 days',
-                'tips': [
-                    'Very drought tolerant',
-                    'Good for marginal soils',
-                    'Thin plants after 2-3 weeks'
-                ],
-                'common_pests': ['Sorghum midge', 'Stalk borer', 'Birds'],
-                'water_requirement': 'Low to Moderate (400-600mm)'
-            }
-        }
-    
-    def predict(self, soil_data: Dict, get_alternatives: bool = True, 
-                top_n: int = 3) -> Dict:
-        '''
-        Make crop prediction based on soil data
-        
-        Args:
-            soil_data: Dictionary with soil parameters
-            get_alternatives: Whether to return alternative crop suggestions
-            top_n: Number of top alternatives to return
-        
-        Returns:
-            Dictionary with prediction results and recommendations
-        '''
+    def __init__(self):
         try:
-            # Validate input
-            is_valid, errors = self.preprocessor.validate_soil_parameters(soil_data)
-            if not is_valid:
-                return {
-                    'success': False,
-                    'error': 'Invalid soil parameters',
-                    'details': errors
-                }
+            self.model = joblib.load(settings.MODEL_PATH)
+            self.scaler = joblib.load(settings.SCALER_PATH)
+            self.label_encoder = joblib.load(settings.ENCODER_PATH)
+            with open(settings.FEATURES_PATH, 'rb') as f:
+                self.feature_names = joblib.load(f)
+            with open(settings.METADATA_PATH, 'r') as f:
+                self.metadata = json.load(f)
+            print("✓ ML Model loaded successfully")
+        except Exception as e:
+            print(f"⚠ ML Model load failed: {e}")
+            raise
+
+    def predict(self, soil_data: Dict) -> Dict:
+        try:
+            # Default values for missing features
+            defaults = {
+                'Zn': 5.0, 'S': 15.0,
+                'QV2M-W': 0.005, 'QV2M-Sp': 0.006, 'QV2M-Su': 0.007, 'QV2M-Au': 0.006,
+                'T2M_MAX-W': 25.0, 'T2M_MAX-Sp': 26.0, 'T2M_MAX-Su': 27.0, 'T2M_MAX-Au': 26.0,
+                'T2M_MIN-W': 15.0, 'T2M_MIN-Sp': 16.0, 'T2M_MIN-Su': 17.0, 'T2M_MIN-Au': 16.0,
+                'PRECTOTCORR-W': 2.5, 'PRECTOTCORR-Sp': 3.0, 'PRECTOTCORR-Su': 2.0, 'PRECTOTCORR-Au': 2.5,
+                'WD10M': 180.0, 'GWETTOP': 0.6, 'CLOUD_AMT': 50.0, 'WS2M_RANGE': 3.5, 'PS': 85.0
+            }
+            full_data = {**defaults, **soil_data}
             
-            # Prepare data
-            input_df = self.preprocessor.prepare_input_data(soil_data)
+            import pandas as pd
+            input_df = pd.DataFrame([full_data], columns=self.feature_names)
             
-            # Scale data if needed
-            model_name = self.metadata['model_name']
-            if model_name in ['K-Nearest Neighbors', 'Logistic Regression']:
-                input_scaled = self.preprocessor.scale_data(input_df)
-                prediction_encoded = self.model.predict(input_scaled)
+            # Scale and predict
+            if self.metadata['model_name'] in ['K-Nearest Neighbors', 'Logistic Regression']:
+                input_scaled = self.scaler.transform(input_df)
+                prediction = self.model.predict(input_scaled)
                 probabilities = self.model.predict_proba(input_scaled)[0]
             else:
-                prediction_encoded = self.model.predict(input_df)
+                prediction = self.model.predict(input_df)
                 probabilities = self.model.predict_proba(input_df)[0]
             
-            # Decode prediction
-            predicted_crop = self.label_encoder.inverse_transform(prediction_encoded)[0]
-            confidence = probabilities[prediction_encoded[0]]
+            # Decode
+            predicted_crop = self.label_encoder.inverse_transform(prediction)[0]
+            confidence = probabilities[prediction[0]]
             
-            # Get alternatives
-            alternatives = []
-            if get_alternatives:
-                top_indices = np.argsort(probabilities)[-top_n:][::-1]
-                for idx in top_indices[1:]:  # Skip first (main prediction)
-                    crop = self.label_encoder.inverse_transform([idx])[0]
-                    alternatives.append({
-                        'crop': crop,
-                        'confidence': float(probabilities[idx]),
-                        'confidence_percent': f"{probabilities[idx]:.1%}"
-                    })
+            # Top 3 alternatives
+            top_3 = np.argsort(probabilities)[-3:][::-1]
+            alternatives = [
+                {
+                    'crop': self.label_encoder.inverse_transform([idx])[0],
+                    'confidence': float(probabilities[idx])
+                }
+                for idx in top_3[1:]
+            ]
             
-            # Assess soil health
-            ph = soil_data.get('Ph', 6.0)
-            n = soil_data.get('N', 0)
-            p = soil_data.get('P', 0)
-            k = soil_data.get('K', 0)
+            # Soil health
+            ph, n, p, k = soil_data['Ph'], soil_data['N'], soil_data['P'], soil_data['K']
+            issues = []
+            if ph < 5.5:
+                issues.append("Soil too acidic - apply lime")
+            if n < 20:
+                issues.append("Low nitrogen - apply urea")
+            if p < 10:
+                issues.append("Low phosphorus - apply DAP")
+            if k < 100:
+                issues.append("Low potassium - apply potash")
             
-            soil_health = self.preprocessor.assess_soil_health(ph, n, p, k)
+            status = "Good" if len(issues) == 0 else ("Fair" if len(issues) <= 2 else "Poor")
             
-            # Get crop-specific recommendations
-            crop_info = self.crop_database.get(predicted_crop, {})
+            # Fertilizer recommendation
+            fertilizer = self._get_fertilizer(predicted_crop, n, p, k)
+            season = self._get_season(predicted_crop)
             
-            # Calculate fertilizer needs
-            fertilizer_rec = self.preprocessor.calculate_fertilizer_needs(
-                predicted_crop, ph, n, p, k
-            )
-            
-            # Build response
-            result = {
+            return {
                 'success': True,
                 'prediction': {
                     'crop': predicted_crop,
@@ -222,67 +84,51 @@ class MLPredictionService:
                     'confidence_percent': f"{confidence:.1%}"
                 },
                 'alternatives': alternatives,
-                'soil_health': soil_health,
-                'recommendations': {
-                    'fertilizer': fertilizer_rec,
-                    'base_fertilizer': crop_info.get('fertilizer_base', 'Contact extension officer'),
-                    'planting_season': crop_info.get('planting_season', 'Contact extension officer'),
-                    'spacing': crop_info.get('spacing', 'Standard spacing recommended'),
-                    'planting_depth': crop_info.get('planting_depth', 'As per standard practice'),
-                    'maturity_days': crop_info.get('maturity_days', 'Varies by variety'),
-                    'water_requirement': crop_info.get('water_requirement', 'Moderate'),
-                    'tips': crop_info.get('tips', []),
-                    'common_pests': crop_info.get('common_pests', [])
+                'soil_health': {
+                    'status': status,
+                    'issues': issues
                 },
-                'next_steps': self._generate_action_plan(predicted_crop, soil_health)
+                'recommendations': {
+                    'fertilizer': fertilizer,
+                    'planting_season': season
+                }
             }
-            
-            return result
-            
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e)
-            }
+            return {'success': False, 'error': str(e)}
     
-    def _generate_action_plan(self, crop: str, soil_health: Dict) -> List[str]:
-        '''Generate step-by-step action plan for farmer'''
-        steps = []
+    def _get_fertilizer(self, crop: str, n: float, p: float, k: float) -> str:
+        requirements = {
+            'Beans': {'N': 30, 'P': 40, 'K': 20},
+            'Maize': {'N': 80, 'P': 40, 'K': 40},
+            'Potato': {'N': 100, 'P': 50, 'K': 150},
+            'Rice': {'N': 80, 'P': 40, 'K': 40}
+        }
+        req = requirements.get(crop, {'N': 50, 'P': 30, 'K': 30})
         
-        # Soil improvement steps (if needed)
-        if soil_health['status'] == 'Poor':
-            steps.append("🚨 URGENT: Address soil issues before planting")
-            for rec in soil_health['recommendations']:
-                if rec['priority'] == 'HIGH':
-                    steps.append(f"   → {rec['recommendation']}")
+        n_deficit = max(0, req['N'] - n)
+        p_deficit = max(0, req['P'] - p)
+        k_deficit = max(0, req['K'] - k)
         
-        # Crop-specific steps
-        crop_info = self.crop_database.get(crop, {})
+        recs = []
+        if n_deficit > 0:
+            recs.append(f"{n_deficit/0.46:.0f}kg Urea")
+        if p_deficit > 0:
+            recs.append(f"{p_deficit/0.46:.0f}kg DAP")
+        if k_deficit > 0:
+            recs.append(f"{k_deficit/0.60:.0f}kg Potash")
         
-        steps.extend([
-            f"1. Prepare land and apply {crop_info.get('fertilizer_base', 'recommended fertilizer')}",
-            f"2. Plant {crop} during {crop_info.get('planting_season', 'appropriate season')}",
-            f"3. Use spacing: {crop_info.get('spacing', 'as recommended')}",
-            f"4. Monitor for common pests: {', '.join(crop_info.get('common_pests', ['various pests'])[:2])}",
-            f"5. Harvest after approximately {crop_info.get('maturity_days', '90-120 days')}"
-        ])
-        
-        return steps
+        return " + ".join(recs) + " per hectare" if recs else "Soil nutrients adequate"
     
-    def get_crop_info(self, crop_name: str) -> Dict:
-        '''Get detailed information about a specific crop'''
-        if crop_name in self.crop_database:
-            return {
-                'success': True,
-                'crop': crop_name,
-                'details': self.crop_database[crop_name]
-            }
-        else:
-            return {
-                'success': False,
-                'error': f'Crop {crop_name} not found in database'
-            }
+    def _get_season(self, crop: str) -> str:
+        seasons = {
+            'Beans': 'Season A (Sep-Dec) and Season B (Feb-May)',
+            'Maize': 'Season A and Season B',
+            'Potato': 'Season B (cooler conditions)',
+            'Rice': 'Year-round with adequate water'
+        }
+        return seasons.get(crop, 'Consult local extension officer')
     
-    def list_supported_crops(self) -> List[str]:
-        '''List all supported crops'''
+    def list_supported_crops(self):
         return self.metadata['classes']
+
+ml_service = MLPredictionService()

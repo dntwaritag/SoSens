@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# !/usr/bin/env python3
 '''
 API Testing Script for FastAPI
 '''
@@ -7,7 +7,36 @@ import requests
 import json
 
 BASE_URL = 'http://localhost:8000'
+ADMIN_EMAIL = "notifications.sosens@gmail.com"
+ADMIN_PASSWORD = "SecurePassword123!"
+ADMIN_SETUP_KEY = "change-this-in-production"
 
+# Colors for terminal output
+class Colors:
+    GREEN = '\033[92m'
+    RED = '\033[91m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    END = '\033[0m'
+
+def print_success(message):
+    print(f"{Colors.GREEN}✓ {message}{Colors.END}")
+
+def print_error(message):
+    print(f"{Colors.RED}✗ {message}{Colors.END}")
+
+def print_info(message):
+    print(f"{Colors.BLUE}ℹ {message}{Colors.END}")
+
+def print_warning(message):
+    print(f"{Colors.YELLOW}⚠ {message}{Colors.END}")
+
+def print_section(title):
+    print(f"\n{Colors.BLUE}{'='*60}")
+    print(f"{title}")
+    print(f"{'='*60}{Colors.END}\n")
+# ============================================================================
+# TEST FUNCTIONS
 def test_health_check():
     '''Test health endpoint'''
     print("\n1. Testing Health Check...")
@@ -16,6 +45,37 @@ def test_health_check():
     print(f"   Response: {response.json()}")
     assert response.status_code == 200
 
+def create_initial_admin():
+    """Create the first admin user"""
+    print_section("2. Creating Initial Admin")
+    try:
+        response = requests.post(
+            f"{BASE_URL}/api/auth/setup-initial-admin",
+            params={"setup_key": ADMIN_SETUP_KEY},
+            json={
+                "email": ADMIN_EMAIL,
+                "full_name": "System Administrator",
+                "password": ADMIN_PASSWORD
+            }
+        )
+        
+        if response.status_code == 201:
+            data = response.json()
+            print_success("Admin created successfully")
+            print_info(f"User: {data['user']['full_name']}")
+            print_info(f"Role: {data['user']['role']}")
+            return data['access_token']
+        elif response.status_code == 403:
+            print_warning("Admin already exists (this is normal)")
+            return None
+        else:
+            print_error(f"Failed to create admin: {response.status_code}")
+            print_error(f"Response: {response.json()}")
+            return None
+    except Exception as e:
+        print_error(f"Error creating admin: {e}")
+        return None
+    
 def test_register_farmer():
     '''Test farmer registration'''
     print("\n2. Testing Farmer Registration...")

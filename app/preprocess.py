@@ -276,4 +276,5 @@ def validate_location(district: str, sector: str = None) -> bool:
         'Nyabihu', 'Nyamasheke', 'Rubavu', 'Rusizi', 'Rutsiro'
     ]
 
+
     return district in RWANDA_DISTRICTS and (sector is None or sector in RWANDA_SECTORS)
