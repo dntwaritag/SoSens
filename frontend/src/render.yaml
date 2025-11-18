@@ -1,16 +1,24 @@
 services:
   - type: static_site
     name: sosens-frontend
+    
+    # Use npx --yes to explicitly call vite - fixes permission issues on Render
     buildCommand: npm install && npx --yes vite build
+    
+    # Directory containing static files to serve
     staticPublishPath: ./dist
+    
+    # Rewrite all routes to index.html for client-side routing
+    routes:
+      - type: rewrite
+        source: /<path*>
+        destination: /index.html
+    
+    # Environment variables available during build
     envVars:
       - key: VITE_API_URL
         value: https://sosens.onrender.com/api
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
-        value: 20
-    routes:
-      - type: rewrite
-        source: /<path*>
-        destination: /index.html
+        value: 22
