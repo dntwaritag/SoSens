@@ -1,6 +1,36 @@
 import { API_CONFIG } from '../config';
 import { getAuthToken } from './auth';
 
+    const apiClient = axios.create({
+    baseURL: API_CONFIG.BASE_URL,
+    timeout: API_CONFIG.TIMEOUT,
+    });
+
+    // Add request interceptor for better error handling
+    apiClient.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+    );
+
+    // Add response interceptor
+    apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+    );
+
+    export default apiClient;
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -205,7 +235,7 @@ async function apiCall<T>(
                 console.info('  1. Start your FastAPI server: python app.py');
                 console.info('  2. Ensure it\'s running on port 5000');
                 console.info('  3. Check http://127.0.0.1:5000/ in your browser');
-                console.info('\n💡 Demo mode works fully with mock data!');
+                console.info('\n Demo mode works fully with mock data!');
                 console.groupEnd();
                 sessionStorage.setItem('backend_unavailable_logged', 'true');
             }

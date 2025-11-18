@@ -1,14 +1,12 @@
-# Node.js dependencies
+# Add these to your .gitignore file
 node_modules/
-
-# Build output
 dist/
-
-# Environment variables
+build/
 .env
-.env.*
-
-# Logs
+.env.local
+.env.*.local
+.DS_Store
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
