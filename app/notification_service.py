@@ -6,8 +6,8 @@ Includes detailed logging and debug mode handling.
 from twilio.rest import Client
 from sqlalchemy.orm import Session
 from datetime import datetime
-from config import settings
-import models
+from .config import settings
+import app.models as models
 import requests  # For SendGrid API
 import asyncio
 
