@@ -10,7 +10,7 @@ from typing import Optional
 from datetime import timedelta, datetime
 
 from .database import get_db, engine
-import models
+import .models
 import schemas
 from auth import (
     authenticate_user, create_access_token, get_current_user,
