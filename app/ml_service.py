@@ -7,7 +7,7 @@ import json
 import os
 import numpy as np
 from typing import Dict, Optional
-from config import settings
+from .config import settings
 
 class MLService:
     def __init__(self):

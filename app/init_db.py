@@ -2,8 +2,8 @@
 Initialize SoSens database with tables and admin user
 """
 
-from database import engine, SessionLocal
-import models
+from .database import engine, SessionLocal
+from . import models
 from auth import get_password_hash
 from datetime import datetime
 

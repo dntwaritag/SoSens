@@ -1,7 +1,7 @@
 # reset_db.py
 from sqlalchemy import text
-from database import engine
-import models
+from .database import engine
+from . import models
 
 def reset_database():
     print("Dropping all tables with CASCADE...")

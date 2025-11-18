@@ -1,9 +1,19 @@
 #!/bin/bash
+set -e
 
-# Initialize database tables
+echo "================================"
+echo "Starting SoSens API Deployment"
+echo "================================"
+
+# Add app directory to Python path
+export PYTHONPATH="${PYTHONPATH}:/opt/render/project/src"
+
+# Initialize database
 echo "Initializing database..."
-python init_db.py
+cd app
+python init_db.py || echo "Database already initialized or init failed (continuing...)"
+cd ..
 
 # Start the FastAPI application
-echo "Starting FastAPI server..."
-uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}
+echo "Starting FastAPI server on port ${PORT}..."
+uvicorn app.app:app --host 0.0.0.0 --port ${PORT:-8000}

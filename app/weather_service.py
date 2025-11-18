@@ -1,8 +1,8 @@
 import requests
 from typing import Optional, Dict
 from sqlalchemy.orm import Session
-from config import settings
-import models
+from .config import settings
+from . import models
 
 RWANDA_LOCATIONS = {
     'Kamonyi': {'lat': -2.04, 'lon': 29.92},

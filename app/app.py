@@ -9,18 +9,18 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import timedelta, datetime
 
-from database import get_db, engine
-import models
-import schemas
-from auth import (
+from app.database import get_db, engine
+import app.models as models
+import app.schemas as schemas
+from app.auth import (
     authenticate_user, create_access_token, get_current_user,
     get_current_admin, get_current_farmer, get_password_hash, create_reset_token
 )
-from ml_service import ml_service
-from weather_service import weather_service
-from notification_service import notification_service
-from scheduler import start_scheduler, stop_scheduler
-from config import settings
+from app.ml_service import ml_service
+from app.weather_service import weather_service
+from app.notification_service import notification_service
+from app.scheduler import start_scheduler, stop_scheduler
+from app.config import settings
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)

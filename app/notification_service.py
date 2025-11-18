@@ -6,8 +6,8 @@ FIXED: Email actually sends, not just mocked
 from twilio.rest import Client
 from sqlalchemy.orm import Session
 from datetime import datetime
-from config import settings
-import models
+from .config import settings
+from . import models
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart

@@ -4,7 +4,7 @@ SQLAlchemy models for SoSens database
 
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, JSON, Enum, ForeignKey
 from sqlalchemy.orm import relationship
-from database import Base
+from .database import Base
 from datetime import datetime
 import enum
 

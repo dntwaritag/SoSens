@@ -1,9 +1,9 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 import pytz
-from config import settings
-from database import SessionLocal
-from notification_service import notification_service
+from .config import settings
+from .database import SessionLocal
+from .notification_service import notification_service
 
 scheduler = AsyncIOScheduler(timezone=pytz.timezone(settings.TIMEZONE))
 
