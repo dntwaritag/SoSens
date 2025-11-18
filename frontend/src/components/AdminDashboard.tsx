@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { getAdminAnalytics, getAllUsers } from '../lib/api';
 import type { User } from '../lib/auth';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface AdminDashboardProps {
     user: User;

@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
 import { Switch } from './ui/switch';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { Beaker, CloudRain, Sprout, TrendingUp, AlertCircle, CheckCircle2, Cloud } from 'lucide-react';
 import { createPrediction, getWeather } from '../lib/api';
 import type { User } from '../lib/auth';
