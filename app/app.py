@@ -172,37 +172,83 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
 
 @app.post("/api/auth/forgot-password", tags=["Authentication"])
 async def forgot_password(data: schemas.PasswordReset, db: Session = Depends(get_db)):
-    """Request password reset with notification"""
+    """Request password reset with notification - FIXED VERSION"""
     
+    print(f"\n{'='*60}")
+    print(f" FORGOT PASSWORD REQUEST")
+    print(f"{'='*60}")
+    print(f"Username/Email/Phone: {data.username}")
+    print(f"{'='*60}\n")
+    
+    # Find user by email or phone
     user = db.query(models.User).filter(
         (models.User.email == data.username) | (models.User.phone_number == data.username)
     ).first()
     
-    # Base response
+    # Base response (security: don't reveal if user exists)
     response_data = {
         "success": True,
         "message": "If account exists, reset instructions sent"
     }
 
     if not user:
+        print(f" No user found with identifier: {data.username}")
+        print(f"{'='*60}\n")
         return response_data
     
-    # Generate token
+    print(f"   User found:")
+    print(f"   ID: {user.id}")
+    print(f"   Name: {user.full_name}")
+    print(f"   Email: {user.email}")
+    print(f"   Phone: {user.phone_number}")
+    
+    # Generate reset token
     reset_token = create_reset_token()
     user.reset_token = reset_token
     user.reset_token_expires = datetime.utcnow() + timedelta(hours=1)
-    db.commit()
     
-    # Send reset notification
     try:
-        await notification_service.send_password_reset(user, reset_token, db)
+        db.commit()
+        print(f" Reset token saved to database")
+        print(f" Token: {reset_token[:10]}...")
+        print(f" Expires: {user.reset_token_expires}")
     except Exception as e:
-        print(f"Password reset notification failed: {e}")
+        print(f" Database error: {e}")
+        db.rollback()
+        raise HTTPException(500, "Database error")
     
+    # Send reset notification - IMPORTANT: Must await!
+    print(f"\n Initiating password reset notification...")
+    
+    try:
+        success = await notification_service.send_password_reset(user, reset_token, db)
+        
+        if success:
+            print(f" Password reset notification sent successfully!")
+        else:
+            print(f" Password reset notification failed to send")
+            # Don't expose this in production, but log it
+            
+    except Exception as e:
+        print(f" Password reset notification error: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    # Debug mode - return token for testing
     if settings.DEBUG:
-        print(f"DEBUG: Password reset token for {user.email} is {reset_token}")
+        print(f"\n{'='*60}")
+        print(f"DEBUG MODE - Token Details")
+        print(f"{'='*60}")
+        print(f"User: {user.email or user.phone_number}")
+        print(f"Token: {reset_token}")
+        print(f"Expires: {user.reset_token_expires}")
+        print(f"{'='*60}\n")
+        
         response_data["debug_token"] = reset_token
+        response_data["debug_user"] = user.email or user.phone_number
+        response_data["debug_expires"] = user.reset_token_expires.isoformat()
     
+    print(f"{'='*60}\n")
     return response_data
 
 @app.post("/api/auth/reset-password", tags=["Authentication"])

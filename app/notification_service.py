@@ -1,6 +1,7 @@
 """
 Enhanced notification service with SendGrid for email and Twilio for SMS.
 Includes detailed logging and debug mode handling.
+FIXED: Password reset notification with better error handling
 """
 
 from twilio.rest import Client
@@ -22,7 +23,7 @@ class NotificationService:
             except Exception as e:
                 print(f" SMS initialization failed: {e}")
         
-        # Email setup - Check if using SendGrid or SMTP
+        # Email setup - if using SendGrid or SMTP
         self.use_sendgrid = bool(settings.SENDGRID_API_KEY)
         self.email_configured = self.use_sendgrid or bool(settings.MAIL_USERNAME and settings.MAIL_PASSWORD)
         
@@ -243,11 +244,22 @@ SoSens Team"""
         return success
     
     async def send_password_reset(self, user: models.User, reset_token: str, db: Session) -> bool:
-        """Send password reset notification"""
+        """Send password reset notification - FIXED VERSION"""
         
+        print(f"\n{'='*60}")
+        print(f" PASSWORD RESET REQUEST")
+        print(f"{'='*60}")
+        print(f"User: {user.full_name}")
+        print(f"Email: {user.email}")
+        print(f"Phone: {user.phone_number}")
+        print(f"Token: {reset_token[:10]}...")
+        print(f"{'='*60}\n")
+        
+        # Create reset link - UPDATE WITH YOUR ACTUAL FRONTEND URL
         reset_link = f"https://sosens.onrender.com/reset-password?token={reset_token}"
         
-        message = f"""Password Reset Request
+        # Create message
+        message = f""" Password Reset Request
 
 Hello {user.full_name},
 
@@ -255,7 +267,8 @@ You requested to reset your password for SoSens.
 
 Your reset code: {reset_token[:8]}
 
-Click this link to reset: {reset_link}
+Click this link to reset your password:
+{reset_link}
 
 This code expires in 1 hour.
 
@@ -265,18 +278,52 @@ Best regards,
 SoSens Team"""
         
         success = False
+        
+        # Try email first if available
         if user.email:
-            print(f"\n Sending password reset email to {user.email}...")
-            success = await self.send_email(
-                user.email,
-                " Password Reset - SoSens",
-                message,
-                db,
-                user.id
-            )
-        elif user.phone_number:
-            sms_message = f"SoSens Password Reset Code: {reset_token[:8]}. Valid for 1 hour. Don't share this code."
-            success = await self.send_sms(user.phone_number, sms_message, db, user.id)
+            print(f" Attempting to send reset email to: {user.email}")
+            try:
+                success = await self.send_email(
+                    user.email,
+                    " Password Reset - SoSens",
+                    message,
+                    db,
+                    user.id
+                )
+                if success:
+                    print(f" Password reset email sent successfully!")
+                    return True
+                else:
+                    print(f" Email sending failed, trying SMS fallback...")
+            except Exception as e:
+                print(f" Email error: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print(f" No email address for user {user.id}")
+        
+        # Fallback to SMS if email failed or not available
+        if user.phone_number:
+            print(f" Attempting to send reset SMS to: {user.phone_number}")
+            try:
+                sms_message = f"SoSens Password Reset Code: {reset_token[:8]}\n\nValid for 1 hour. Don't share this code.\n\nReset link: {reset_link}"
+                success = await self.send_sms(user.phone_number, sms_message, db, user.id)
+                if success:
+                    print(f" Password reset SMS sent successfully!")
+                    return True
+                else:
+                    print(f" SMS sending failed")
+            except Exception as e:
+                print(f" SMS error: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print(f" No phone number for user {user.id}")
+        
+        # If both methods failed
+        if not success:
+            print(f" Failed to send password reset notification via any channel")
+            self._log(db, user.id, 'password_reset_failed', 'none', message, False, "All notification methods failed")
         
         return success
     
@@ -323,7 +370,7 @@ SoSens Team"""
     
     async def send_daily_weather(self, db: Session):
         """Send daily weather to all farmers"""
-        from weather_service import weather_service
+        from .weather_service import weather_service
         
         users = db.query(models.User).filter(
             models.User.is_active == True,
@@ -343,9 +390,9 @@ SoSens Team"""
                 message = f"""Good morning {user.full_name}!
 
 Today's Weather in {weather['location']}:
-🌡️ Temperature: {weather['temperature']}°C
-💧 Humidity: {weather['humidity']}%
-☁️ Conditions: {weather['description']}
+    Temperature: {weather['temperature']}°C
+    Humidity: {weather['humidity']}%
+    Conditions: {weather['description']}
 
 Farming Advice:
 {weather['advice']}
@@ -361,7 +408,7 @@ SoSens Team"""
                 elif user.preferred_contact == 'email' and user.email:
                     success = await self.send_email(
                         user.email,
-                        f" Daily Weather Update - {weather['location']}",
+                        f"Daily Weather Update - {weather['location']}",
                         message,
                         db,
                         user.id
