@@ -1,8 +1,16 @@
 services:
   - type: static_site
     name: sosens-frontend
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npx --yes vite build
     staticPublishPath: ./dist
     envVars:
       - key: VITE_API_URL
         value: https://sosens.onrender.com/api
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 20
+    routes:
+      - type: rewrite
+        source: /<path*>
+        destination: /index.html
