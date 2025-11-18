@@ -3,7 +3,7 @@ services:
     name: sosens-frontend
     
     # Use npx --yes to explicitly call vite - fixes permission issues on Render
-    buildCommand: npm install && npx --yes vite build
+    buildCommand: npm install && npm run build
     
     # Directory containing static files to serve
     staticPublishPath: ./dist
