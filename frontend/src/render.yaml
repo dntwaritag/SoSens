@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: sosens-frontend
+    runtime: node
+    rootDir: frontend
+    buildCommand: npm install && npx vite build
+    startCommand: npm run preview
+    envVars:
+      - key: VITE_API_URL
+        value: https://sosens.onrender.com
