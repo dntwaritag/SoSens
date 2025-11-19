@@ -1,6 +1,10 @@
 import os
 from dotenv import load_dotenv
 import secrets
+from pathlib import Path
+
+# Get base directory (app folder)
+BASE_DIR = Path(__file__).resolve().parent
 
 load_dotenv()
 
@@ -48,12 +52,12 @@ class Settings:
     OPENWEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY')
     OPENWEATHER_BASE_URL = os.getenv('OPENWEATHER_BASE_URL', 'https://api.openweathermap.org/data/2.5')
     
-    # ML Models
-    MODEL_PATH = os.getenv('MODEL_PATH', 'models/rwanda_soil_model_random_forest.pkl')
-    SCALER_PATH = os.getenv('SCALER_PATH', 'models/feature_scaler.pkl')
-    ENCODER_PATH = os.getenv('ENCODER_PATH', 'models/label_encoder.pkl')
-    FEATURES_PATH = os.getenv('FEATURES_PATH', 'models/feature_names.pkl')
-    METADATA_PATH = os.getenv('METADATA_PATH', 'models/model_metadata.json')
+    # ML Models and Artifacts
+    MODEL_PATH = os.getenv('MODEL_PATH', str(BASE_DIR / 'models' / 'rwanda_soil_model_random_forest.pkl'))
+    SCALER_PATH = os.getenv('SCALER_PATH', str(BASE_DIR / 'models' / 'feature_scaler.pkl'))
+    ENCODER_PATH = os.getenv('ENCODER_PATH', str(BASE_DIR / 'models' / 'label_encoder.pkl'))
+    FEATURES_PATH = os.getenv('FEATURES_PATH', str(BASE_DIR / 'models' / 'feature_names.pkl'))
+    METADATA_PATH = os.getenv('METADATA_PATH', str(BASE_DIR / 'models' / 'model_metadata.json'))
     
     # Notifications
     NOTIFICATION_TIME = os.getenv('NOTIFICATION_TIME', '06:00')
