@@ -4,7 +4,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { toast } from 'sonner';
+import { toast } from 'sonner@2.0.3';
 import { AlertCircle } from 'lucide-react';
 import { register } from '../lib/auth';
 import { Checkbox } from './ui/checkbox';
@@ -24,7 +24,7 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
         sector: '',
         village: '',
         farmSize: '',
-        preferredContact: 'sms' as 'sms' | 'email' | 'both',
+        preferredContact: 'sms' as 'sms' | 'email',
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -243,7 +243,7 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
                                 <Label htmlFor="preferredContact">Preferred Contact Method *</Label>
                                 <Select 
                                     value={formData.preferredContact} 
-                                    onValueChange={(value: 'sms' | 'email' | 'both') => setFormData({ ...formData, preferredContact: value })}
+                                    onValueChange={(value: 'sms' | 'email') => setFormData({ ...formData, preferredContact: value })}
                                 >
                                     <SelectTrigger>
                                         <SelectValue />
@@ -251,7 +251,6 @@ export function RegisterPage({ onNavigate }: RegisterPageProps) {
                                     <SelectContent>
                                         <SelectItem value="sms">SMS</SelectItem>
                                         <SelectItem value="email">Email</SelectItem>
-                                        <SelectItem value="both">Both</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

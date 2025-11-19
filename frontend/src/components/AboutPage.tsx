@@ -151,7 +151,7 @@ export function AboutPage() {
                             Built for the farmers of Rwanda with a commitment to improving agricultural outcomes through technology and innovation.
                         </p>
                         <p className="text-green-200">
-                            © 2025 All rights reserved.
+                            {/* © 2025 All rights reserved. */}
                         </p>
                     </div>
                 </div>

@@ -10,7 +10,7 @@ export interface User {
     sector?: string;
     village?: string;
     farm_size?: number;
-    preferred_contact: 'sms' | 'email' | 'both';
+    preferred_contact: 'sms' | 'email';
     receive_notifications: boolean;
     is_active: boolean;
     created_at: string;
@@ -29,7 +29,7 @@ export async function register(
     sector?: string,
     village?: string,
     farmSize?: number,
-    preferredContact?: 'sms' | 'email' | 'both'
+    preferredContact?: 'sms' | 'email'
 ): Promise<User> {
     const response = await registerUser({
         full_name: fullName,

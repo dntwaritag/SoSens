@@ -3,9 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
-import { toast } from 'sonner';
-import { AlertCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { toast } from 'sonner@2.0.3';
+import { AlertCircle, KeyRound, Loader2 } from 'lucide-react';
 import { login, type User } from '../lib/auth';
+import { forgotPassword, resetPassword } from '../lib/api';
 
 interface LoginPageProps {
     onLogin: (user: User) => void;
@@ -19,6 +21,16 @@ export function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    
+    // Forgot Password state
+    const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+    const [resetEmail, setResetEmail] = useState('');
+    const [resetToken, setResetToken] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [resetStep, setResetStep] = useState<'request' | 'reset'>('request');
+    const [resetLoading, setResetLoading] = useState(false);
+    const [debugToken, setDebugToken] = useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -41,6 +53,76 @@ export function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
             });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleForgotPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setResetLoading(true);
+
+        try {
+            const response = await forgotPassword(resetEmail);
+            
+            toast.success('Reset link sent', {
+                description: 'If your account exists, you will receive reset instructions'
+            });
+            
+            // Check if debug token is available (development mode)
+            if (response.debug_token) {
+                setDebugToken(response.debug_token);
+                toast.info('Debug Mode', {
+                    description: `Reset token: ${response.debug_token.substring(0, 10)}...`
+                });
+            }
+            
+            setResetStep('reset');
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to send reset link';
+            toast.error('Reset failed', {
+                description: errorMessage
+            });
+        } finally {
+            setResetLoading(false);
+        }
+    };
+
+    const handleResetPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (newPassword !== confirmPassword) {
+            toast.error('Passwords do not match');
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            toast.error('Password must be at least 6 characters');
+            return;
+        }
+
+        setResetLoading(true);
+
+        try {
+            await resetPassword(resetToken, newPassword);
+            
+            toast.success('Password reset successful', {
+                description: 'You can now login with your new password'
+            });
+            
+            // Reset form and close dialog
+            setForgotPasswordOpen(false);
+            setResetStep('request');
+            setResetEmail('');
+            setResetToken('');
+            setNewPassword('');
+            setConfirmPassword('');
+            setDebugToken('');
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to reset password';
+            toast.error('Reset failed', {
+                description: errorMessage
+            });
+        } finally {
+            setResetLoading(false);
         }
     };
 
@@ -79,13 +161,147 @@ export function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
                                     })}
                                     required
                                 />
-                                <p className="text-xs text-gray-500">
-                                    Demo: Use 'admin' / 'admin123' for admin access
-                                </p>
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="password">Password</Label>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="password">Password</Label>
+                                    <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
+                                        <DialogTrigger asChild>
+                                            <button 
+                                                type="button"
+                                                className="text-xs text-green-600 hover:underline flex items-center gap-1"
+                                            >
+                                                <KeyRound className="w-3 h-3" />
+                                                Forgot password?
+                                            </button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-md">
+                                            <DialogHeader>
+                                                <DialogTitle>Reset Password</DialogTitle>
+                                                <DialogDescription>
+                                                    {resetStep === 'request' 
+                                                        ? 'Enter your email or phone number to receive reset instructions'
+                                                        : 'Enter the reset token and your new password'}
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            
+                                            {resetStep === 'request' ? (
+                                                <form onSubmit={handleForgotPassword} className="space-y-4">
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="resetEmail">Email or Phone Number</Label>
+                                                        <Input
+                                                            id="resetEmail"
+                                                            type="text"
+                                                            placeholder="+250788123456 or email@example.com"
+                                                            value={resetEmail}
+                                                            onChange={(e) => setResetEmail(e.target.value)}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <Button 
+                                                            type="submit" 
+                                                            className="flex-1 bg-green-600 hover:bg-green-700"
+                                                            disabled={resetLoading}
+                                                        >
+                                                            {resetLoading ? (
+                                                                <>
+                                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                                    Sending...
+                                                                </>
+                                                            ) : (
+                                                                'Send Reset Link'
+                                                            )}
+                                                        </Button>
+                                                        <Button 
+                                                            type="button"
+                                                            variant="outline"
+                                                            onClick={() => setForgotPasswordOpen(false)}
+                                                        >
+                                                            Cancel
+                                                        </Button>
+                                                    </div>
+                                                </form>
+                                            ) : (
+                                                <form onSubmit={handleResetPassword} className="space-y-4">
+                                                    {debugToken && (
+                                                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                                            <p className="text-xs text-blue-700 mb-1">Debug Mode - Use this token:</p>
+                                                            <code className="text-xs text-blue-900 break-all">{debugToken}</code>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="resetToken">Reset Token</Label>
+                                                        <Input
+                                                            id="resetToken"
+                                                            type="text"
+                                                            placeholder="Enter token from email/SMS"
+                                                            value={resetToken}
+                                                            onChange={(e) => setResetToken(e.target.value)}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="newPassword">New Password</Label>
+                                                        <Input
+                                                            id="newPassword"
+                                                            type="password"
+                                                            placeholder="Minimum 6 characters"
+                                                            value={newPassword}
+                                                            onChange={(e) => setNewPassword(e.target.value)}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="confirmPassword">Confirm Password</Label>
+                                                        <Input
+                                                            id="confirmPassword"
+                                                            type="password"
+                                                            placeholder="Re-enter password"
+                                                            value={confirmPassword}
+                                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    
+                                                    <div className="flex gap-2">
+                                                        <Button 
+                                                            type="submit" 
+                                                            className="flex-1 bg-green-600 hover:bg-green-700"
+                                                            disabled={resetLoading}
+                                                        >
+                                                            {resetLoading ? (
+                                                                <>
+                                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                                    Resetting...
+                                                                </>
+                                                            ) : (
+                                                                'Reset Password'
+                                                            )}
+                                                        </Button>
+                                                        <Button 
+                                                            type="button"
+                                                            variant="outline"
+                                                            onClick={() => {
+                                                                setResetStep('request');
+                                                                setResetToken('');
+                                                                setNewPassword('');
+                                                                setConfirmPassword('');
+                                                                setDebugToken('');
+                                                            }}
+                                                        >
+                                                            Back
+                                                        </Button>
+                                                    </div>
+                                                </form>
+                                            )}
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
                                 <Input
                                     id="password"
                                     type="password"

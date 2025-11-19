@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { Sprout, FileText, TrendingUp, Calendar, Loader2, Settings } from 'lucide-react';
 import { getRecommendations, getSoilReadings, updatePreferences } from '../lib/api';
 import type { User } from '../lib/auth';
-import { toast } from 'sonner';
+import { toast } from 'sonner@2.0.3';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -117,7 +117,7 @@ export function FarmerDashboard({ user, onNavigate }: FarmerDashboardProps) {
                                 <Label>Preferred Contact Method</Label>
                                 <Select
                                     value={preferences.preferred_contact}
-                                    onValueChange={(value: 'sms' | 'email' | 'both') => 
+                                    onValueChange={(value: 'sms' | 'email') => 
                                         setPreferences({ ...preferences, preferred_contact: value })
                                     }
                                 >
@@ -127,7 +127,6 @@ export function FarmerDashboard({ user, onNavigate }: FarmerDashboardProps) {
                                     <SelectContent>
                                         <SelectItem value="sms">SMS</SelectItem>
                                         <SelectItem value="email">Email</SelectItem>
-                                        <SelectItem value="both">Both</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

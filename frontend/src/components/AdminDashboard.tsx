@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { getAdminAnalytics, getAllUsers } from '../lib/api';
 import type { User } from '../lib/auth';
-import { toast } from 'sonner';
+import { toast } from 'sonner@2.0.3';
 
 interface AdminDashboardProps {
     user: User;
@@ -194,8 +194,8 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                {analytics?.users_by_district && analytics.users_by_district.length > 0 ? (
-                                    analytics.users_by_district.map((item: any, index: number) => (
+                                {analytics?.by_district && analytics.by_district.length > 0 ? (
+                                    analytics.by_district.map((item: any, index: number) => (
                                         <div key={index} className="space-y-2">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
