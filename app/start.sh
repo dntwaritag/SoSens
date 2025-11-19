@@ -1,19 +1,44 @@
 #!/bin/bash
 set -e
 
-echo "================================"
-echo "Starting SoSens API Deployment"
-echo "================================"
+echo "======================================================================"
+echo "SoSens Deployment Starting"
+echo "======================================================================"
 
-# Add app directory to Python path
-export PYTHONPATH="${PYTHONPATH}:/opt/render/project/src"
+# Change to app directory
+cd /opt/render/project/src/app || cd app
 
-# Initialize database
-echo "Initializing database..."
-cd app
-python init_db.py || echo "Database already initialized or init failed (continuing...)"
-cd ..
+echo "Current directory: $(pwd)"
+echo "Listing files:"
+ls -la
 
-# Start the FastAPI application
-echo "Starting FastAPI server on port ${PORT}..."
-uvicorn app.app:app --host 0.0.0.0 --port ${PORT:-8000}
+echo ""
+echo "Checking Python version:"
+python --version
+
+echo ""
+echo "Checking pip packages:"
+pip list | grep -E "fastapi|uvicorn|sqlalchemy|bcrypt|passlib" || true
+
+echo ""
+echo "Checking model files:"
+if [ -d "models" ]; then
+    echo "Models directory exists:"
+    ls -la models/
+else
+    echo "Creating models directory..."
+    mkdir -p models
+fi
+
+echo ""
+echo "======================================================================"
+echo "Starting Uvicorn Server"
+echo "======================================================================"
+
+# Run the app
+uvicorn app:app \
+    --host 0.0.0.0 \
+    --port ${PORT:-10000} \
+    --workers 1 \
+    --loop uvloop \
+    --http httptools

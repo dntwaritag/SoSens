@@ -4,7 +4,13 @@ services:
     env: python
     region: oregon
     plan: free
-    buildCommand: pip install -r app/requirements.txt
+    runtime: python-3.11
+    buildCommand: |
+      cd app && \
+      pip install --upgrade pip && \
+      pip install -r requirements.txt && \
+      echo "Build complete - checking model files..." && \
+      ls -la models/ || echo "Models directory will be populated at runtime"
     startCommand: bash start.sh
     envVars:
       - key: PYTHON_VERSION
@@ -23,6 +29,18 @@ services:
         value: "1440"
       - key: PYTHONPATH
         value: /opt/render/project/src
+      - key: API_HOST
+        value: 0.0.0.0
+      - key: API_PORT
+        value: "10000"
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
 
 databases:
   - name: sosens-db
