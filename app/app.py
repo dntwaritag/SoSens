@@ -663,7 +663,7 @@ async def broadcast_message(
     sent = 0
     failed = 0
     
-    print(f" Broadcasting message to {len(users)} farmers...")
+    print(f"📢 Broadcasting message to {len(users)} farmers...")
     
     for user in users:
         try:
@@ -672,7 +672,7 @@ async def broadcast_message(
             elif user.preferred_contact == 'email' and user.email:
                 success = await notification_service.send_email(
                     user.email,
-                    " Important Message from SoSens",
+                    "📢 Important Message from SoSens",
                     message,
                     db,
                     user.id
@@ -727,7 +727,7 @@ async def send_bulk_predictions(
     sent = 0
     failed = 0
     
-    print(f" Sending {crop} prediction to {len(users)} farmers...")
+    print(f"📢 Sending {crop} prediction to {len(users)} farmers...")
     
     for user in users:
         try:
@@ -816,28 +816,8 @@ async def get_notification_logs(
         ]
     }
 
-@app.get("/api/admin/model-status", tags=["Admin"])
-async def check_model_status(current_user: models.User = Depends(get_current_user)):
-    """Check if ML model is properly loaded"""
-    
-    if current_user.role != models.UserRole.ADMIN:
-        raise HTTPException(403, "Admin access required")
-    
-    return {
-        "model_loaded": ml_service.model_loaded,
-        "model": {
-            "loaded": ml_service.model is not None,
-            "type": str(type(ml_service.model)) if ml_service.model else None,
-            "has_predict": hasattr(ml_service.model, 'predict') if ml_service.model else False,
-            "has_predict_proba": hasattr(ml_service.model, 'predict_proba') if ml_service.model else False
-        },
-        "scaler": ml_service.scaler is not None,
-        "encoder": ml_service.encoder is not None,
-        "feature_names": ml_service.feature_names,
-        "metadata": ml_service.metadata is not None
-    }
 # ============================================================================
-# RUN APPLICATIONa
+# RUN APPLICATION
 # ============================================================================
 
 if __name__ == "__main__":
