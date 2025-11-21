@@ -1,0 +1,16 @@
+{
+    "model_name": "Random Forest",
+    "accuracy": 0.6620879120879121,
+    "n_features": 27,
+    "n_classes": 5,
+    "classes": [
+        "Bean",
+        "Maize",
+        "Potato",
+        "Sorghum",
+        "Wheat"
+    ],
+    "training_samples": 1456,
+    "test_samples": 364,
+    "date_trained": "2025-11-02 21:20:05"
+}

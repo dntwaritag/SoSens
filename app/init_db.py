@@ -14,7 +14,7 @@ def init_database():
     
     # Create all tables
     models.Base.metadata.create_all(bind=engine)
-    print("✓ Tables created")
+    print(" Tables created")
     
     # Get database session
     db = SessionLocal()
@@ -69,7 +69,7 @@ def init_database():
         print()
         
     except Exception as e:
-        print(f"✗ Error creating admin user: {e}")
+        print(f" Error creating admin user: {e}")
         db.rollback()
         raise
     finally:
@@ -154,7 +154,7 @@ def verify_database():
         print()
         
     except Exception as e:
-        print(f"✗ Database verification failed: {e}")
+        print(f" Database verification failed: {e}")
         raise
     finally:
         db.close()

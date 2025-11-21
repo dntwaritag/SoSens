@@ -22,75 +22,97 @@ class MLService:
         self._load_models()
     
     def _load_models(self):
-        """Load all ML models and preprocessors with better error handling"""
+        """Load all ML models """
         try:
-            # Get the app directory
-            app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            models_dir = os.path.join(app_dir, 'models')
+            # Method 1: Look relative to this file
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            possible_paths = [
+                os.path.join(current_dir, 'models'),           # app/models/
+                os.path.join(current_dir, '..', 'models'),     # ./models/
+                os.path.join(current_dir, '../models'),        # ./models/
+                '/app/models',                                  # Docker path
+                './models',                                     # Current directory
+            ]
             
+            models_dir = None
             print(f"\n{'='*60}")
-            print(f" ML MODEL LOADING")
+            print(f" ML MODEL LOADING - PATH DETECTION")
             print(f"{'='*60}")
-            print(f" App Dir: {app_dir}")
-            print(f" Models Dir: {models_dir}")
-            print(f" Models Dir Exists: {os.path.exists(models_dir)}")
+            print(f" Current file location: {current_dir}")
             
-            if os.path.exists(models_dir):
-                print(f" Files in models dir:")
-                for f in os.listdir(models_dir):
-                    print(f"   - {f}")
+            for path in possible_paths:
+                abs_path = os.path.abspath(path)
+                exists = os.path.exists(abs_path)
+                print(f" Checking: {abs_path} - {' FOUND' if exists else ' NOT FOUND'}")
+                if exists:
+                    models_dir = abs_path
+                    break
             
-            # Construct paths
+            if not models_dir:
+                print(f" CRITICAL: No models directory found!")
+                print(f" Checked paths: {possible_paths}")
+                print(f"{'='*60}\n")
+                return
+            
+            print(f" Using models directory: {models_dir}")
+            print(f" Files in directory: {os.listdir(models_dir)}")
+            
+            # Load each model with validation
             model_path = os.path.join(models_dir, 'rwanda_soil_model_random_forest.pkl')
             scaler_path = os.path.join(models_dir, 'feature_scaler.pkl')
             encoder_path = os.path.join(models_dir, 'label_encoder.pkl')
             features_path = os.path.join(models_dir, 'feature_names.pkl')
             metadata_path = os.path.join(models_dir, 'model_metadata.json')
             
-            # Load model
-            if os.path.exists(model_path):
+            # Load with error handling for each file
+            try:
                 self.model = joblib.load(model_path)
                 self.model_loaded = True
-                print(f"  ML Model loaded: {model_path}")
-            else:
-                print(f"  Model file not found: {model_path}")
+                print(f"  ML Model loaded successfully")
+            except FileNotFoundError:
+                print(f" Model file not found: {model_path}")
+                raise
+            except Exception as e:
+                print(f"  Error loading model: {e}")
+                raise
             
-            # Load scaler
-            if os.path.exists(scaler_path):
+            try:
                 self.scaler = joblib.load(scaler_path)
                 print(f"  Scaler loaded")
-            else:
-                print(f"  Scaler not found: {scaler_path}")
+            except Exception as e:
+                print(f" Scaler loading failed: {e}")
             
-            # Load encoder
-            if os.path.exists(encoder_path):
+            try:
                 self.encoder = joblib.load(encoder_path)
-                print(f"  Encoder loaded")
-            else:
-                print(f"  Encoder not found: {encoder_path}")
+                print(f" Encoder loaded")
+            except Exception as e:
+                print(f" Encoder loading failed: {e}")
             
-            # Load feature names
-            if os.path.exists(features_path):
+            try:
                 self.feature_names = joblib.load(features_path)
-                print(f"  Feature names loaded: {self.feature_names}")
-            else:
-                print(f"  Feature names not found: {features_path}")
+                print(f" Feature names loaded: {self.feature_names}")
+            except Exception as e:
+                print(f" Feature names loading failed: {e}")
             
-            # Load metadata
-            if os.path.exists(metadata_path):
+            try:
                 with open(metadata_path, 'r') as f:
                     self.metadata = json.load(f)
-                print(f"  Metadata loaded")
-            else:
-                print(f"  Metadata not found: {metadata_path}")
+                print(f" Metadata loaded")
+            except Exception as e:
+                print(f" Metadata loading failed: {e}")
             
             print(f"{'='*60}\n")
-                
+                    
         except Exception as e:
-            print(f"  Error loading ML models: {e}")
-            print("Using fallback prediction mode")
+            print(f"\n{'='*60}")
+            print(f" CRITICAL MODEL LOADING ERROR")
+            print(f"{'='*60}")
+            print(f" Error: {e}")
+            print(f" Model will NOT be available")
+            print(f"{'='*60}\n")
             import traceback
             traceback.print_exc()
+            self.model_loaded = False
     
     def predict(self, soil_data: Dict) -> Dict:
         """
@@ -128,7 +150,7 @@ class MLService:
                 # Get alternatives
                 top_3_indices = np.argsort(probabilities)[-3:][::-1]
                 alternatives = []
-                for idx in top_3_indices[1:]:  # Skip first (main prediction)
+                for idx in top_3_indices[1:]:  # main prediction
                     if self.encoder:
                         crop_name = self.encoder.inverse_transform([idx])[0]
                     else:
@@ -170,7 +192,7 @@ class MLService:
             return result
             
         except Exception as e:
-            print(f" ✗ Prediction error: {e}")
+            print(f" Prediction error: {e}")
             import traceback
             traceback.print_exc()
             return {
@@ -343,5 +365,25 @@ class MLService:
             ]
         }
 
+    async def _download_model_from_url(self):
+        """Download model from cloud URL if local files not found"""
+        import httpx
+        
+        if not settings.MODEL_URL:
+            return False
+        
+        try:
+            print(" Attempting to download model from URL...")
+            async with httpx.AsyncClient() as client:
+                response = await client.get(settings.MODEL_URL)
+                model_bytes = response.content
+                self.model = joblib.loads(model_bytes)
+                self.model_loaded = True
+                print(" Model downloaded successfully")
+                return True
+        except Exception as e:
+            print(f" Failed to download model: {e}")
+            return False
+    
 # Create singleton instance
 ml_service = MLService()

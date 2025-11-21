@@ -27,6 +27,15 @@ class Settings:
         DATABASE_URL = 'sqlite:///./sosens.db'
         print(" WARNING: Using SQLite database. Set DATABASE_URL for production.")
     
+    # Model loading strategy
+    MODEL_LOADING_STRATEGY = os.getenv('MODEL_LOADING_STRATEGY', 'file')  # 'file' or 'url'
+
+    # If using URL loading (for Render/cloud deployment)
+    if MODEL_LOADING_STRATEGY == 'url':
+        MODEL_URL = os.getenv('MODEL_URL')  # URL to download model from
+        SCALER_URL = os.getenv('SCALER_URL')
+        ENCODER_URL = os.getenv('ENCODER_URL')
+    
     # Security
     SECRET_KEY = os.getenv('SECRET_KEY')
     if not SECRET_KEY:
