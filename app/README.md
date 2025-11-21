@@ -1,4 +1,6 @@
-<img width="1896" height="1023" alt="image" src="https://github.com/user-attachments/assets/dd4943da-0c9f-4377-aa83-2fd22922b25b" /># SoSens - Climate-Smart Agriculture Decision Support System
+# SoSens - Climate-Smart Agriculture Decision Support System
+<img width="1897" height="1028" alt="image" src="https://github.com/user-attachments/assets/e6bd4834-8fc6-4b13-971a-c91a03d6a622" />
+
 
 Climate-smart agriculture decision support system using machine learning to provide crop recommendations for farmers in Rwanda based on soil properties and weather conditions.
 
