@@ -389,22 +389,22 @@ fetch('https://sosens.onrender.com/api/health')
 ## Screenshots
 
 ### Login Page
-[Login] <img width="1891" height="1022" alt="image" src="https://github.com/user-attachments/assets/90077ab3-c67d-49d4-be59-9b28222b0fe3" />
+<img width="1891" height="1022" alt="image" src="https://github.com/user-attachments/assets/90077ab3-c67d-49d4-be59-9b28222b0fe3" />
 
 ### Dashboard
-[Dashboard]<img width="1896" height="1023" alt="image" src="https://github.com/user-attachments/assets/22639f64-130a-435e-aaf4-9abed3af01f2" />
+<img width="1896" height="1023" alt="image" src="https://github.com/user-attachments/assets/22639f64-130a-435e-aaf4-9abed3af01f2" />
 
 ### Soil Analysis Form
-[Soil Analysis]<img width="1902" height="1028" alt="image" src="https://github.com/user-attachments/assets/88d862c9-3525-4382-9102-a115c112efa0" />
+<img width="1902" height="1028" alt="image" src="https://github.com/user-attachments/assets/88d862c9-3525-4382-9102-a115c112efa0" />
 
 ### Crop Recommendation
-[Recommendation]<img width="1895" height="1017" alt="image" src="https://github.com/user-attachments/assets/b3c669b4-e2dd-4c1a-b9d9-5444655cfa57" />
+<img with="1895" height="1017" alt="image" src="https://github.com/user-attachments/assets/b3c669b4-e2dd-4c1a-b9d9-5444655cfa57" />
 
 ### Weather Widget
-[Weather]<img width="1898" height="1021" alt="image" src="https://github.com/user-attachments/assets/6d826efe-cf61-4d6e-9bd5-cbe04773ae89" />
+<img width="1898" height="1021" alt="image" src="https://github.com/user-attachments/assets/6d826efe-cf61-4d6e-9bd5-cbe04773ae89" />
 
 ### Admin Panel
-[Admin] <img width="1896" height="1016" alt="image" src="https://github.com/user-attachments/assets/2f9ef096-5705-48d1-a0c5-3a323a4701d6" />
+<img width="1896" height="1016" alt="image" src="https://github.com/user-attachments/assets/2f9ef096-5705-48d1-a0c5-3a323a4701d6" />
 
 ## Troubleshooting
 
