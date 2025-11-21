@@ -1,368 +1,347 @@
+"""
+ML Service for crop prediction - FIXED VERSION
+"""
+
 import joblib
 import json
 import os
 import numpy as np
-import pandas as pd
-from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Dict, Optional
 from .config import settings
 
 class MLService:
     def __init__(self):
-        """
-        Initialize ML Service for SoSens Rwanda.
-        Handles model loading, feature scaling, and crop-specific logic.
-        """
+        """Initialize ML models"""
         self.model = None
         self.scaler = None
         self.encoder = None
         self.feature_names = None
+        self.metadata = None
         self.model_loaded = False
         
-        # =========================================================================
-        # 1. RWANDA ENVIRONMENTAL DEFAULTS (AVERAGES)
-        # =========================================================================
-        # These values are used if real-time weather data is missing.
-        # Based on average Rwandan climate data (Highlands/Lowlands mix).
-        self.defaults = {
-            'temperature': 20.0,    # Avg temp in °C
-            'humidity': 70.0,       # Avg relative humidity %
-            'rainfall': 100.0,      # Avg monthly rainfall in mm
-            'ph': 6.0,              # Default pH (slightly acidic)
-            'N': 50, 'P': 30, 'K': 40 # Default moderate soil fertility
-        }
-
-        # =========================================================================
-        # 2. RWANDA CROP KNOWLEDGE BASE (RAB GUIDELINES)
-        # =========================================================================
-        # Targets: Optimal nutrient levels (kg/ha) and pH range.
-        # Type: Determines fertilizer strategy (Cereal, Legume, Tuber, Cash).
-        self.crop_profiles = {
-            'Maize':   {'N': 120, 'P': 60, 'K': 60,  'pH_min': 5.5, 'pH_max': 7.0, 'type': 'Cereal'},
-            'Rice':    {'N': 100, 'P': 40, 'K': 40,  'pH_min': 5.0, 'pH_max': 7.0, 'type': 'Cereal'},
-            'Beans':   {'N': 40,  'P': 40, 'K': 30,  'pH_min': 5.8, 'pH_max': 7.2, 'type': 'Legume'},
-            'Kidneybeans': {'N': 40, 'P': 40, 'K': 30, 'pH_min': 5.8, 'pH_max': 7.2, 'type': 'Legume'},
-            'Soyabeans':{'N': 30, 'P': 50, 'K': 40,  'pH_min': 6.0, 'pH_max': 7.0, 'type': 'Legume'},
-            'Mungbean': {'N': 20, 'P': 40, 'K': 20,  'pH_min': 6.0, 'pH_max': 7.5, 'type': 'Legume'},
-            'Coffee':  {'N': 120, 'P': 40, 'K': 100, 'pH_min': 5.0, 'pH_max': 6.5, 'type': 'Cash'},
-            'Banana':  {'N': 100, 'P': 40, 'K': 150, 'pH_min': 5.5, 'pH_max': 7.0, 'type': 'Fruit'},
-            'Cassava': {'N': 60,  'P': 40, 'K': 80,  'pH_min': 4.5, 'pH_max': 7.5, 'type': 'Tuber'},
-            'Potato':  {'N': 120, 'P': 80, 'K': 150, 'pH_min': 5.0, 'pH_max': 6.5, 'type': 'Tuber'},
-            'Wheat':   {'N': 100, 'P': 50, 'K': 50,  'pH_min': 5.5, 'pH_max': 7.5, 'type': 'Cereal'},
-            'Sorghum': {'N': 80,  'P': 40, 'K': 40,  'pH_min': 5.5, 'pH_max': 8.0, 'type': 'Cereal'},
-            'Orange':  {'N': 100, 'P': 50, 'K': 100, 'pH_min': 5.5, 'pH_max': 7.0, 'type': 'Fruit'},
-            'Papaya':  {'N': 90,  'P': 50, 'K': 90,  'pH_min': 6.0, 'pH_max': 7.0, 'type': 'Fruit'},
-            'Apple':   {'N': 100, 'P': 60, 'K': 100, 'pH_min': 5.5, 'pH_max': 6.5, 'type': 'Fruit'},
-            'Cotton':  {'N': 120, 'P': 60, 'K': 60,  'pH_min': 5.8, 'pH_max': 7.5, 'type': 'Cash'},
-        }
-
         self._load_models()
-
+    
     def _load_models(self):
-        """Load the trained model artifacts securely"""
+        """Load all ML models and preprocessors with better error handling"""
         try:
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            possible_paths = [
-                os.path.join(current_dir, 'models'),
-                os.path.join(current_dir, '..', 'models'),
-                '/app/models',
-                './models',
-            ]
+            # Get the app directory
+            app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            models_dir = os.path.join(app_dir, 'models')
             
-            models_dir = None
-            for path in possible_paths:
-                if os.path.exists(path):
-                    models_dir = path
-                    break
+            print(f"\n{'='*60}")
+            print(f" ML MODEL LOADING")
+            print(f"{'='*60}")
+            print(f" App Dir: {app_dir}")
+            print(f" Models Dir: {models_dir}")
+            print(f" Models Dir Exists: {os.path.exists(models_dir)}")
             
-            if not models_dir:
-                print("CRITICAL: No models directory found")
-                return
+            if os.path.exists(models_dir):
+                print(f" Files in models dir:")
+                for f in os.listdir(models_dir):
+                    print(f"   - {f}")
             
-            # Load files (Ensure these match the filenames generated by your notebook)
-            self.model = joblib.load(os.path.join(models_dir, 'rwanda_soil_model_random_forest.pkl'))
-            self.scaler = joblib.load(os.path.join(models_dir, 'feature_scaler.pkl'))
-            self.encoder = joblib.load(os.path.join(models_dir, 'label_encoder.pkl'))
-            self.feature_names = joblib.load(os.path.join(models_dir, 'feature_names.pkl'))
+            # Construct paths
+            model_path = os.path.join(models_dir, 'rwanda_soil_model_random_forest.pkl')
+            scaler_path = os.path.join(models_dir, 'feature_scaler.pkl')
+            encoder_path = os.path.join(models_dir, 'label_encoder.pkl')
+            features_path = os.path.join(models_dir, 'feature_names.pkl')
+            metadata_path = os.path.join(models_dir, 'model_metadata.json')
             
-            self.model_loaded = True
-            print(f"ML Models loaded successfully. Features: {self.feature_names}")
-                    
+            # Load model
+            if os.path.exists(model_path):
+                self.model = joblib.load(model_path)
+                self.model_loaded = True
+                print(f"  ML Model loaded: {model_path}")
+            else:
+                print(f"  Model file not found: {model_path}")
+            
+            # Load scaler
+            if os.path.exists(scaler_path):
+                self.scaler = joblib.load(scaler_path)
+                print(f"  Scaler loaded")
+            else:
+                print(f"  Scaler not found: {scaler_path}")
+            
+            # Load encoder
+            if os.path.exists(encoder_path):
+                self.encoder = joblib.load(encoder_path)
+                print(f"  Encoder loaded")
+            else:
+                print(f"  Encoder not found: {encoder_path}")
+            
+            # Load feature names
+            if os.path.exists(features_path):
+                self.feature_names = joblib.load(features_path)
+                print(f"  Feature names loaded: {self.feature_names}")
+            else:
+                print(f"  Feature names not found: {features_path}")
+            
+            # Load metadata
+            if os.path.exists(metadata_path):
+                with open(metadata_path, 'r') as f:
+                    self.metadata = json.load(f)
+                print(f"  Metadata loaded")
+            else:
+                print(f"  Metadata not found: {metadata_path}")
+            
+            print(f"{'='*60}\n")
+                
         except Exception as e:
-            print(f"Error loading models: {e}")
-            self.model_loaded = False
-
+            print(f"  Error loading ML models: {e}")
+            print("Using fallback prediction mode")
+            import traceback
+            traceback.print_exc()
+    
     def predict(self, soil_data: Dict) -> Dict:
         """
-        Main Prediction Pipeline:
-        1. Prepare Data (with defaults for missing weather)
-        2. Scale & Predict
-        3. Generate Dynamic Advice (Fertilizer Math + Season Logic)
-        4. Return Structured Result with Alternatives
+        Make crop prediction based on soil data
         """
         try:
-            if not self.model_loaded:
+            # If models not loaded, use fallback
+            if not self.model_loaded or self.model is None:
+                print(" WARNING: Using fallback prediction (model not loaded)")
                 return self._fallback_prediction(soil_data)
             
-            # 1. Prepare DataFrame
-            input_df = self._prepare_input_dataframe(soil_data)
+            # Prepare features
+            features = self._prepare_features(soil_data)
+            print(f" Input features: {features}")
             
-            # 2. Scale Features
+            # Scale features
             if self.scaler:
-                features_scaled = self.scaler.transform(input_df)
+                features_scaled = self.scaler.transform([features])
+                print(f" Scaled features: {features_scaled}")
             else:
-                features_scaled = input_df.values
+                features_scaled = [features]
+                print(f" WARNING: No scaler available, using raw features")
             
-            # 3. Get Prediction & Confidence
+            # Make prediction
+            prediction = self.model.predict(features_scaled)[0]
+            print(f" Raw prediction: {prediction}")
+            
+            # Get confidence (probability)
             if hasattr(self.model, 'predict_proba'):
                 probabilities = self.model.predict_proba(features_scaled)[0]
-                top_indices = np.argsort(probabilities)[::-1] # Descending
+                confidence = float(np.max(probabilities))
+                print(f" Probabilities: {probabilities}")
+                print(f" Max confidence: {confidence}")
                 
-                # Winner
-                winner_idx = top_indices[0]
-                winner_crop = self.encoder.inverse_transform([winner_idx])[0]
-                winner_conf = float(probabilities[winner_idx])
-                
-                # Alternatives (Top 2 others > 5%)
+                # Get alternatives
+                top_3_indices = np.argsort(probabilities)[-3:][::-1]
                 alternatives = []
-                for idx in top_indices[1:3]:
-                    if probabilities[idx] > 0.05:
-                        alt_crop = self.encoder.inverse_transform([idx])[0]
-                        alt_advice = self._generate_dynamic_recommendations(alt_crop, soil_data)
-                        alternatives.append({
-                            'crop': alt_crop,
-                            'confidence': float(probabilities[idx]),
-                            'fertilizer': alt_advice['fertilizer'],
-                            'season': alt_advice['planting_season']
-                        })
+                for idx in top_3_indices[1:]:  # Skip first (main prediction)
+                    if self.encoder:
+                        crop_name = self.encoder.inverse_transform([idx])[0]
+                    else:
+                        crop_name = f"Crop_{idx}"
+                    alternatives.append({
+                        'crop': crop_name,
+                        'confidence': float(probabilities[idx])
+                    })
             else:
-                # Fallback for models without probability
-                pred_idx = self.model.predict(features_scaled)[0]
-                winner_crop = self.encoder.inverse_transform([pred_idx])[0]
-                winner_conf = 0.85
+                confidence = 0.85
                 alternatives = []
+                print(f" WARNING: Model has no predict_proba method")
             
-            # 4. Generate Detailed Advice for Winner
-            recommendations = self._generate_dynamic_recommendations(winner_crop, soil_data)
-            soil_health = self._assess_soil_health(soil_data, winner_crop)
-
-            return {
+            # Decode crop name
+            if self.encoder:
+                crop_name = self.encoder.inverse_transform([prediction])[0]
+                print(f" Decoded crop: {crop_name}")
+            else:
+                crop_name = str(prediction)
+            
+            # Assess soil health
+            soil_health = self._assess_soil_health(soil_data)
+            
+            # Generate recommendations
+            recommendations = self._generate_recommendations(crop_name, soil_data)
+            
+            result = {
                 'success': True,
                 'prediction': {
-                    'crop': winner_crop,
-                    'confidence': winner_conf
+                    'crop': crop_name,
+                    'confidence': confidence
                 },
                 'soil_health': soil_health,
                 'recommendations': recommendations,
                 'alternatives': alternatives
             }
             
+            print(f" Final result: {result}")
+            return result
+            
         except Exception as e:
-            print(f"Prediction error: {e}")
+            print(f" ✗ Prediction error: {e}")
             import traceback
             traceback.print_exc()
-            return {'success': False, 'error': str(e)}
-
-    def _prepare_input_dataframe(self, soil_data: Dict) -> pd.DataFrame:
-        """
-        Aligns input dictionary with model's expected features.
-        Fills missing weather data with Rwanda averages.
-        """
-        input_data = soil_data.copy()
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
+    def _prepare_features(self, soil_data: Dict) -> list:
+        """Prepare features in correct order"""
+        defaults = {
+            'Ph': soil_data.get('Ph', 6.5),
+            'N': soil_data.get('N', 40),
+            'P': soil_data.get('P', 20),
+            'K': soil_data.get('K', 200),
+            'Zn': soil_data.get('Zn', 5.0),
+            'S': soil_data.get('S', 15.0)
+        }
         
-        # Fill missing weather data with defaults
-        for key, value in self.defaults.items():
-            if key not in input_data or input_data[key] is None:
-                input_data[key] = value
-
-        # Map 'Ph' from frontend to 'ph' if needed (case sensitivity)
-        if 'Ph' in input_data: input_data['ph'] = input_data.pop('Ph')
-        
-        # Extract only the features the model was trained on
-        final_data = {}
         if self.feature_names:
-            for feature in self.feature_names:
-                # Handle case mismatch (e.g., 'N' vs 'n')
-                val = input_data.get(feature) or input_data.get(feature.lower()) or input_data.get(feature.upper()) or 0.0
-                final_data[feature] = val
-            return pd.DataFrame([final_data], columns=self.feature_names)
+            features = [defaults.get(f, 0) for f in self.feature_names]
+        else:
+            features = [defaults['Ph'], defaults['N'], defaults['P'], 
+                    defaults['K'], defaults['Zn'], defaults['S']]
         
-        # Fallback if feature names missing (unlikely)
-        return pd.DataFrame([input_data])
-
-    def _assess_soil_health(self, soil_data: Dict, crop: str) -> Dict:
-        """
-        Analyzes soil suitability for the SPECIFIC crop.
-        Returns detailed warnings if soil is off-balance.
-        """
-        ph = soil_data.get('Ph', soil_data.get('ph', 6.0))
-        n = soil_data.get('N', 50)
-        
-        # Get profile or defaults
-        profile = self.crop_profiles.get(crop, {'pH_min': 5.5, 'pH_max': 7.5})
+        return features
+    
+    def _assess_soil_health(self, soil_data: Dict) -> Dict:
+        """Assess soil health status based on actual values"""
+        ph = soil_data.get('Ph', 6.5)
+        n = soil_data.get('N', 40)
+        p = soil_data.get('P', 20)
+        k = soil_data.get('K', 200)
+        zn = soil_data.get('Zn', 5.0)
         
         issues = []
         
-        # 1. pH Check
-        if ph < profile['pH_min']:
-            issues.append(f"pH {ph} is too acidic for {crop} (needs {profile['pH_min']}+). Yields may drop.")
-        elif ph > profile['pH_max']:
-            issues.append(f"pH {ph} is too alkaline for {crop}. Nutrient lockout risk.")
-            
-        # 2. Nitrogen Check (General)
-        if n < 20:
-            issues.append("Nitrogen is critically low. Growth will be stunted.")
-        
-        status = "Good"
-        if len(issues) >= 2: status = "Poor"
-        elif len(issues) == 1: status = "Fair"
-        
-        return {'status': status, 'issues': issues}
-
-    def _generate_dynamic_recommendations(self, crop: str, soil_data: Dict) -> Dict:
-        """
-        Generates math-based fertilizer advice and calendar-based planting advice.
-        """
-        return {
-            'fertilizer': self._calculate_fertilizer_math(crop, soil_data),
-            'planting_season': self._get_rwandan_season_advice(crop),
-            'spacing': self._get_spacing(crop)
-        }
-
-    def _calculate_fertilizer_math(self, crop: str, soil_data: Dict) -> str:
-        """
-        Calculates exact nutrient deficits and suggests Urea/DAP/NPK amounts.
-        """
-        # Default targets if crop unknown
-        target = self.crop_profiles.get(crop, {'N': 60, 'P': 30, 'K': 40, 'pH_min': 5.5})
-        
-        actual_n = soil_data.get('N', 0)
-        actual_p = soil_data.get('P', 0)
-        actual_k = soil_data.get('K', 0)
-        actual_ph = soil_data.get('Ph', soil_data.get('ph', 6.0))
-        
-        advice_parts = []
-        
-        # --- pH Correction ---
-        if actual_ph < target['pH_min']:
-            advice_parts.append("Apply Lime (2 tons/ha) 2 weeks before planting")
-        
-        # --- Nutrient Math ---
-        n_deficit = target['N'] - actual_n
-        p_deficit = target['P'] - actual_p
-        k_deficit = target['K'] - actual_k
-        
-        # 1. Phosphorus (Priority - for roots) - Use DAP (18-46-0)
-        if p_deficit > 10:
-            dap_needed = int(p_deficit * 2.2) # 1 / 0.46
-            advice_parts.append(f"{dap_needed}kg/ha DAP during planting")
-            # DAP adds some Nitrogen (18%), reduce N deficit calculation
-            n_deficit -= (dap_needed * 0.18)
-            
-        # 2. Nitrogen (Vegetative growth) - Use Urea (46-0-0)
-        if n_deficit > 10:
-            if crop in ['Beans', 'Soyabeans', 'Peas']:
-                advice_parts.append("Legumes fix own Nitrogen. Apply starter N only (20kg/ha Urea).")
-            else:
-                urea_needed = int(n_deficit * 2.2) # 1 / 0.46
-                # Split application for efficiency
-                half = int(urea_needed / 2)
-                advice_parts.append(f"{urea_needed}kg/ha Urea (Split: {half}kg at planting, {half}kg at top dressing)")
-        elif n_deficit < -30:
-            advice_parts.append("Soil N is high. Skip Urea to prevent lodging.")
-
-        # 3. Potassium - Use NPK 17-17-17 or Potash if high deficit
-        if k_deficit > 10:
-            if k_deficit > 40:
-                potash_needed = int(k_deficit * 1.6) # Potash is ~60%
-                advice_parts.append(f"{potash_needed}kg/ha Potash")
-            else:
-                advice_parts.append("Use NPK 17-17-17 for maintenance.")
-        
-        if not advice_parts:
-            return "Soil is fertile. Apply organic manure (10 tons/ha) to maintain health."
-            
-        return " + ".join(advice_parts)
-
-    def _get_rwandan_season_advice(self, crop: str) -> str:
-        """
-        Dynamic advice based on current month and Rwanda's Season A/B/C.
-        """
-        current_month = datetime.now().month
-        
-        # Season A: Sep-Jan (Short rains) - Main crop: Maize, Beans
-        # Season B: Feb-Jun (Long rains) - Main crop: Sorghum, Wheat, Potato
-        # Season C: Jul-Sep (Dry/Wetlands) - Vegetables, Rice
-        
-        is_season_a_prep = current_month in [8, 9]      # Aug-Sep
-        is_season_a_active = current_month in [10, 11, 12, 1]
-        
-        is_season_b_prep = current_month in [1, 2]      # Jan-Feb
-        is_season_b_active = current_month in [3, 4, 5]
-        
-        # Logic per crop type
-        if crop in ['Maize', 'Beans', 'Soyabeans']:
-            if is_season_a_prep: return "Prepare land now. Plant mid-September (Season A)."
-            if is_season_a_active: return "Season A is active. Monitor for pests."
-            if is_season_b_prep: return "Prepare land now. Plant late February (Season B)."
-            return "Current time is off-season. Plan for next rains."
-            
-        if crop in ['Potato', 'Wheat']:
-            if is_season_b_prep: return "Ideal time. Plant in Feb for Season B (Best yield)."
-            return "Best grown in Season B (Feb-May) in Northern highlands."
-            
-        if crop == 'Rice':
-            return "Plant in marshlands. Season A (Sep) or Season B (Feb)."
-            
-        if crop == 'Coffee':
-            if current_month in [10, 11]: return "Apply fertilizer now (Short rains)."
-            if current_month in [3, 4]: return "Apply fertilizer now (Long rains)."
-            return "Maintain mulching. Harvest usually starts March-July."
-            
-        if crop in ['Cassava', 'Banana']:
-            return "Plant at onset of rains (Sep or Feb). Drought tolerant once established."
-
-        return "Consult local sector agronomist for specific timing."
-
-    def _get_spacing(self, crop: str) -> str:
-        spacing = {
-            'Maize': '75cm x 25cm (1 plant per hole)',
-            'Beans': '40cm x 20cm (2 seeds per hole)', 
-            'Soyabeans': '10cm x 40cm',
-            'Potato': '80cm x 30cm (Ridge planting)',
-            'Wheat': 'Drill lines 20cm apart',
-            'Rice': '20cm x 20cm (Transplanting)',
-            'Cassava': '1m x 1m',
-            'Banana': '3m x 3m',
-            'Coffee': '2.5m x 2.5m',
-            'Orange': '5m x 5m'
-        }
-        return spacing.get(crop, "Standard spacing")
-
-    def _fallback_prediction(self, soil_data: Dict) -> Dict:
-        """
-        Robust fallback if model file fails to load.
-        Uses basic agronomic logic.
-        """
-        ph = soil_data.get('Ph', 6.0)
-        
-        # Simple Logic Tree
-        if ph < 5.0:
-            crop = 'Cassava' # Tolerates acidity
-            conf = 0.70
+        # pH check
+        if ph < 5.5:
+            issues.append("Soil is too acidic (pH < 5.5) - apply lime")
         elif ph > 7.5:
-            crop = 'Sorghum' # Tolerates alkaline
-            conf = 0.65
+            issues.append("Soil is too alkaline (pH > 7.5) - add organic matter")
+        
+        # Nitrogen check
+        if n < 20:
+            issues.append("Low nitrogen (< 20) - apply urea or manure")
+        elif n > 80:
+            issues.append("Excessive nitrogen (> 80) - reduce fertilizer")
+        
+        # Phosphorus check
+        if p < 10:
+            issues.append("Low phosphorus (< 10) - apply DAP")
+        
+        # Potassium check
+        if k < 100:
+            issues.append("Low potassium (< 100) - apply potash")
+        
+        # Zinc check
+        if zn < 2:
+            issues.append("Low zinc (< 2) - apply zinc sulfate")
+        
+        # Overall status
+        if len(issues) >= 3:
+            status = "Poor"
+        elif len(issues) >= 1:
+            status = "Fair"
         else:
-            crop = 'Maize'   # General favorite
-            conf = 0.60
-            
+            status = "Good"
+        
+        return {
+            'status': status,
+            'issues': issues
+        }
+    
+    def _generate_recommendations(self, crop: str, soil_data: Dict) -> Dict:
+        """Generate farming recommendations based on soil data"""
+        
+        # Rwanda planting seasons
+        season_map = {
+            'Beans': 'Season A (Sep-Dec) & Season B (Feb-May)',
+            'Maize': 'Season A (Sep-Dec) & Season B (Feb-May)',
+            'Cassava': 'Year-round planting possible',
+            'Potato': 'Season B (Feb-May) in highland areas',
+            'Rice': 'Season A (Sep-Dec) in wetlands',
+            'Wheat': 'Season B (Feb-May) in highland areas'
+        }
+        
+        # Fertilizer recommendations based on actual soil data
+        fertilizer = self._calculate_fertilizer(crop, soil_data)
+        
+        return {
+            'fertilizer': fertilizer,
+            'planting_season': season_map.get(crop, 'Consult local agricultural officer'),
+            'spacing': 'Standard spacing for crop type'
+        }
+    
+    def _calculate_fertilizer(self, crop: str, soil_data: Dict) -> str:
+        """Calculate fertilizer needs based on actual soil values"""
+        n = soil_data.get('N', 40)
+        p = soil_data.get('P', 20)
+        k = soil_data.get('K', 200)
+        
+        recommendations = []
+        
+        # Nitrogen recommendations
+        if n < 20:
+            recommendations.append("100kg Urea per hectare")
+        elif n < 40:
+            recommendations.append("50kg Urea per hectare")
+        elif n > 80:
+            recommendations.append("Nitrogen adequate - skip urea")
+        
+        # Phosphorus recommendations
+        if p < 10:
+            recommendations.append("75kg DAP per hectare")
+        elif p < 20:
+            recommendations.append("50kg DAP per hectare")
+        elif p > 40:
+            recommendations.append("Phosphorus adequate")
+        
+        # Potassium recommendations
+        if k < 100:
+            recommendations.append("60kg Potash per hectare")
+        elif k < 150:
+            recommendations.append("30kg Potash per hectare")
+        elif k > 250:
+            recommendations.append("Potassium adequate")
+        
+        if not recommendations:
+            return "Soil nutrients adequate - maintenance fertilizer only"
+        
+        return " + ".join(recommendations)
+    
+    def _fallback_prediction(self, soil_data: Dict) -> Dict:
+        """Fallback prediction when models are not available"""
+        print("\n" + "="*60)
+        print(" FALLBACK PREDICTION MODE (Model Not Available)")
+        print("="*60 + "\n")
+        
+        ph = soil_data.get('Ph', 6.5)
+        n = soil_data.get('N', 40)
+        p = soil_data.get('P', 20)
+        k = soil_data.get('K', 200)
+        
+        # Rule-based prediction for Rwanda
+        if ph < 5.5:
+            crop = 'Cassava'
+        elif n > 60 and k > 200:
+            crop = 'Maize'
+        elif p > 30:
+            crop = 'Beans'
+        elif k > 250:
+            crop = 'Potato'
+        else:
+            crop = 'Beans'
+        
+        soil_health = self._assess_soil_health(soil_data)
+        recommendations = self._generate_recommendations(crop, soil_data)
+        
         return {
             'success': True,
-            'prediction': {'crop': crop, 'confidence': conf},
-            'soil_health': self._assess_soil_health(soil_data, crop),
-            'recommendations': self._generate_dynamic_recommendations(crop, soil_data),
-            'alternatives': []
+            'prediction': {
+                'crop': crop,
+                'confidence': 0.72
+            },
+            'soil_health': soil_health,
+            'recommendations': recommendations,
+            'alternatives': [
+                {'crop': 'Maize', 'confidence': 0.65},
+                {'crop': 'Cassava', 'confidence': 0.60}
+            ]
         }
 
+# Create a singleton instance
 ml_service = MLService()
