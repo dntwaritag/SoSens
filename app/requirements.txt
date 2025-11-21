@@ -20,9 +20,9 @@ email-validator==2.0.0
 # Cryptography
 cryptography==41.0.7
 
-# Data Processing
+# Data Processing - FIXED FOR COMPATIBILITY
 pandas==2.0.3
-numpy==1.24.3
+numpy==1.26.3
 scikit-learn==1.3.2
 joblib==1.3.2
 

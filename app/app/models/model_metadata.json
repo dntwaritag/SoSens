@@ -1,0 +1,33 @@
+{
+  "model_type": "RandomForestClassifier",
+  "n_estimators": 200,
+  "max_depth": 15,
+  "accuracy": 0.5642857142857143,
+  "classes": [
+    "Beans",
+    "Cassava",
+    "Maize",
+    "Potato",
+    "Rice",
+    "Wheat"
+  ],
+  "features": [
+    "Ph",
+    "N",
+    "P",
+    "K",
+    "Zn",
+    "S"
+  ],
+  "training_samples": 700,
+  "version": "1.0",
+  "created_date": "2025-11-21T16:17:31.974731",
+  "crop_recommendations": {
+    "Beans": "Tolerates slightly acidic soils, moderate nutrient requirements",
+    "Maize": "High nitrogen requirement, slightly acidic preference",
+    "Cassava": "Tolerates acidic soils, low nutrient requirement",
+    "Potato": "Neutral pH preference, needs good phosphorus",
+    "Rice": "Neutral to slightly acidic, waterlogged tolerant",
+    "Wheat": "Neutral to alkaline preference"
+  }
+}
