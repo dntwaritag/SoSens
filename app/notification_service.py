@@ -97,7 +97,7 @@ class NotificationService:
             <html>
                 <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9;">
                     <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        <h2 style="color: #2e7d32; border-bottom: 3px solid #2e7d32; padding-bottom: 10px;">🌱 SoSens Rwanda</h2>
+                        <h2 style="color: #2e7d32; border-bottom: 3px solid #2e7d32; padding-bottom: 10px;"> SoSens Rwanda</h2>
                         <div style="margin: 20px 0; line-height: 1.6; color: #333;">
                             {body.replace(chr(10), '<br>')}
                         </div>
@@ -176,7 +176,7 @@ class NotificationService:
             <html>
                 <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9;">
                     <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        <h2 style="color: #2e7d32; border-bottom: 3px solid #2e7d32; padding-bottom: 10px;">🌱 SoSens Rwanda</h2>
+                        <h2 style="color: #2e7d32; border-bottom: 3px solid #2e7d32; padding-bottom: 10px;"> SoSens Rwanda</h2>
                         <div style="margin: 20px 0; line-height: 1.6; color: #333;">
                             {body.replace(chr(10), '<br>')}
                         </div>
@@ -330,7 +330,7 @@ SoSens Team"""
     async def send_prediction_notification(self, user: models.User, prediction: dict, weather_advice: str, db: Session) -> bool:
         """Send notification after crop prediction"""
         
-        message = f"""🌾 New Crop Recommendation
+        message = f""" New Crop Recommendation
 
 Hello {user.full_name}!
 
@@ -360,7 +360,7 @@ SoSens Team"""
         elif user.preferred_contact == 'email' and user.email:
             success = await self.send_email(
                 user.email,
-                "🌾 Your Crop Recommendation - SoSens",
+                " Your Crop Recommendation - SoSens",
                 message,
                 db,
                 user.id
