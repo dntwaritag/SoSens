@@ -515,7 +515,7 @@ Private project for Rwanda agricultural system
 
 ## Video Demonstration
 
-Full project walkthrough: [https://youtu.be/BpB7NFI0thQ](https://youtu.be/BpB7NFI0thQ)
+Full project walkthrough: [[Demo Video](https://youtu.be/P8fKa8dwevE)]
 
 ## Support
 
