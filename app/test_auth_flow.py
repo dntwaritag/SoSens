@@ -77,7 +77,7 @@ def test_complete_flow():
 def test_login():
     """Test login"""
     print_separator()
-    print("\n🔐 STEP 2: Testing login...")
+    print("\n STEP 2: Testing login...")
     
     login_data = {
         "username": "test@sosens.rw",  # or phone number
@@ -127,7 +127,7 @@ def test_protected_endpoints(token):
     # TEST 1: GET /api/auth/me
     # ========================================================================
     print_separator()
-    print("\n🧪 TEST 1: GET /api/auth/me")
+    print("\n TEST 1: GET /api/auth/me")
     
     try:
         response = requests.get(
@@ -320,7 +320,7 @@ def test_protected_endpoints(token):
         
         if response.status_code == 200:
             result = response.json()
-            print(f"   ✅ Success!")
+            print(f"   Success!")
             print(f"   Total crops: {result.get('total', 0)}")
             crops = result.get('crops', [])
             if crops:
