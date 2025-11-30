@@ -462,7 +462,7 @@ Fully responsive on:
 - Bcrypt password hashing
 - Token expiration handling
 - Role-based access control
-- Input validation and sanitization
+- Input validation and sanitisation
 - XSS prevention
 - CORS configuration
 
@@ -489,7 +489,7 @@ git push origin main
 
 ### Check Backend Status
 ```bash
-curl https://sosens.onrender.com/api/health
+curl https://sosens.onrender.com/docs/health 
 ```
 
 ### View Logs
@@ -558,24 +558,6 @@ fetch('https://sosens.onrender.com/api/predict', {
 - GitHub: https://github.com/dntwaritag
 - Project Repository: https://github.com/dntwaritag/SoSens
 
-## Deployment Checklist
-
-Before deployment:
-- [ ] Update SECRET_KEY in backend
-- [ ] Configure all API keys
-- [ ] Test registration and login
-- [ ] Test crop prediction
-- [ ] Verify notifications
-- [ ] Test admin features
-- [ ] Check mobile responsiveness
-
-After deployment:
-- [ ] Verify backend health
-- [ ] Test user registration
-- [ ] Test prediction endpoint
-- [ ] Verify database connection
-- [ ] Check notification delivery
-- [ ] Monitor error logs
 
 ---
 
