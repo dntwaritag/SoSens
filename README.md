@@ -6,7 +6,7 @@ Climate-smart agriculture decision support system using machine learning to prov
 
 ## Overview
 
-SoSens is a complete full-stack web application that helps farmers make informed decisions about crop selection, fertilizer application, and planting schedules. The system integrates real-time weather data, automated SMS/email notifications, and a trained machine learning model for accurate crop predictions.
+SoSens is a complete full-stack web application that helps farmers make informed decisions about crop selection, fertiliser application, and planting schedules. The system integrates real-time weather data, automated SMS/email notifications, and a trained machine learning model for accurate crop predictions.
 
 ## Features
 
@@ -131,7 +131,7 @@ Backend API: http://127.0.0.1:8000/docs
 ### Frontend Setup
 
 ```bash
-# In new terminal, from project root
+# In a new terminal, from the project root
 cd frontend
 
 # Install dependencies
@@ -250,52 +250,7 @@ export const API_CONFIG = {
 };
 ```
 
-## Deployment
-
-### Backend Deployment on Render
-
-1. **Create Web Service**
-   - Go to https://dashboard.render.com/
-   - Click "New +" → "Web Service"
-   - Connect GitHub repository
-
-2. **Configure Build**
-   - Build Command: `pip install -r app/requirements.txt`
-   - Start Command: `bash app/start.sh`
-
-3. **Add Environment Variables**
-   - DATABASE_URL (PostgreSQL)
-   - SECRET_KEY
-   - SENDGRID_API_KEY
-   - TWILIO credentials
-   - OPENWEATHER_API_KEY
-
-4. **Deploy Database**
-   - Create PostgreSQL database (free tier available)
-   - Link to service
-
-5. **Deploy**
-   - Click "Create Web Service"
-   - Wait for build (5-10 minutes)
-   - Backend available at: https://sosens-api.onrender.com
-
-### Frontend Deployment on Render
-
-1. **Create Static Site**
-   - Go to https://dashboard.vercel/
-   - Click "New +" → "Project"
-   - Connect GitHub repository
-
-2. **Build Configuration**
-   - Build Command: `npm install && npm run build`
-   - Publish Directory: `dist`
-
-3. **Deploy**
-   - Click "Create project"
-   - Wait for build (2-5 minutes)
-   - Frontend available at: [SoSens-Frontend](https://sosens.vercel.app/)
-
-### Alternative: GitHub Pages for Frontend
+### GitHub Pages for Frontend
 
 ```bash
 # Build production
@@ -304,7 +259,6 @@ npm run build
 # Deploy to gh-pages
 npm run deploy
 ```
-
 
 ## Machine Learning Model
 
